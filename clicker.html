@@ -160,6 +160,26 @@
     color: #64748b;
     cursor: not-allowed;
   }
+  .load-bar {
+    width: 100%;
+    height: 14px;
+    border-radius: 7px;
+    background: #334155;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .load-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #a78bfa, #c4b5fd);
+    transition: width 0.1s linear;
+  }
+  .sw-status {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 10px;
+    min-height: 1em;
+  }
   .rebirth-panel h2 {
     margin: 0 0 8px;
     font-size: 1rem;
@@ -232,6 +252,8 @@
     <div class="switch-panel">
       <h2>Switch Clickers</h2>
       <div class="sw-req" id="swReq"></div>
+      <div class="load-bar"><div class="load-bar-fill" id="loadFill"></div></div>
+      <div class="sw-status" id="swStatus"></div>
       <button id="switchBtn" disabled>Switch Clickers</button>
     </div>
   </div>
@@ -367,8 +389,14 @@
   const rebirthBtn = document.getElementById("rebirthBtn");
   const swReqEl = document.getElementById("swReq");
   const switchBtn = document.getElementById("switchBtn");
+  const loadFillEl = document.getElementById("loadFill");
+  const swStatusEl = document.getElementById("swStatus");
 
   const SWITCH_REQUIRED_REBIRTHS = 10;
+  const SWITCH_LOAD_MS = 5000;
+  let switchLoading = false;
+  let switchProgress = 0;
+  let switchTimer = null;
 
   function buildShop() {
     shopEl.innerHTML = "";
@@ -437,7 +465,8 @@
     const unlocked = state.rebirths >= SWITCH_REQUIRED_REBIRTHS;
     if (unlocked) {
       swReqEl.textContent = "Unlocked!";
-      switchBtn.disabled = false;
+      switchBtn.disabled = switchLoading;
+      switchBtn.textContent = switchLoading ? "Switching..." : "Switch Clickers";
     } else {
       const remaining = SWITCH_REQUIRED_REBIRTHS - state.rebirths;
       swReqEl.textContent =
@@ -492,9 +521,38 @@
     render();
   });
 
+  function grantRandomUpgrade() {
+    const u = upgrades[Math.floor(Math.random() * upgrades.length)];
+    state.owned[u.id] = (state.owned[u.id] || 0) + 1;
+    return u;
+  }
+
   switchBtn.addEventListener("click", () => {
     if (state.rebirths < SWITCH_REQUIRED_REBIRTHS) return;
-    alert("Switch Clickers coming soon!");
+    if (switchLoading) return;
+
+    switchLoading = true;
+    switchProgress = 0;
+    loadFillEl.style.width = "0%";
+    swStatusEl.textContent = "Switching...";
+    render();
+
+    const start = Date.now();
+    switchTimer = setInterval(() => {
+      const elapsed = Date.now() - start;
+      switchProgress = Math.min(1, elapsed / SWITCH_LOAD_MS);
+      loadFillEl.style.width = (switchProgress * 100).toFixed(1) + "%";
+
+      if (switchProgress >= 1) {
+        clearInterval(switchTimer);
+        switchTimer = null;
+        switchLoading = false;
+        const u = grantRandomUpgrade();
+        swStatusEl.textContent = "Got: " + u.name + "!";
+        save();
+        render();
+      }
+    }, 100);
   });
 
   // Auto income tick
