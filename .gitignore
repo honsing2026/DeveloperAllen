@@ -1,0 +1,14 @@
+.env
+secret_key.txt
+
+.venv/
+__pycache__/
+.vscode/
+
+*.log
+*.tmp
+*.__pycache__
+
+!keep_this.log
+temp/*
+!.gitkeep
