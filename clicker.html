@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clicker Game</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #e2e8f0;
+    user-select: none;
+  }
+  h1 { margin: 0 0 8px; font-size: 1.6rem; }
+  .score { font-size: 2.4rem; font-weight: 700; margin-bottom: 4px; }
+  .stats { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; }
+  #clickBtn {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    background: radial-gradient(circle at 30% 30%, #38bdf8, #0369a1);
+    box-shadow: 0 8px 0 #075985, 0 12px 24px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform 0.05s, box-shadow 0.05s;
+  }
+  #clickBtn:active {
+    transform: translateY(6px);
+    box-shadow: 0 2px 0 #075985, 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .shop {
+    margin-top: 28px;
+    width: min(420px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #1e293b;
+    border: 1px solid #334155;
+  }
+  .item .info { text-align: left; }
+  .item .name { font-weight: 600; }
+  .item .desc { font-size: 0.75rem; color: #94a3b8; }
+  .item button {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    background: #22c55e;
+    color: #052e16;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .item button:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+  .reset {
+    margin-top: 20px;
+    background: none;
+    border: 1px solid #475569;
+    color: #94a3b8;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.75rem;
+  }
+</style>
+</head>
+<body>
+  <h1>Clicker Game</h1>
+  <div class="score" id="score">0</div>
+  <div class="stats" id="stats">0 per click &middot; 0 per second</div>
+
+  <button id="clickBtn">CLICK</button>
+
+  <div class="shop" id="shop"></div>
+
+  <button class="reset" id="resetBtn">Reset game</button>
+
+<script>
+  const SAVE_KEY = "clickerGameSave";
+
+  const upgrades = [
+    { id: "click1", name: "Better Finger", desc: "+1 per click", baseCost: 10, type: "click", value: 1 },
+    { id: "click2", name: "Steel Gloves", desc: "+5 per click", baseCost: 100, type: "click", value: 5 },
+    { id: "click3", name: "Power Gauntlet", desc: "+25 per click", baseCost: 1000, type: "click", value: 25 },
+    { id: "auto1", name: "Auto Clicker", desc: "+1 per second", baseCost: 50, type: "auto", value: 1 },
+    { id: "auto2", name: "Clicker Bot", desc: "+5 per second", baseCost: 500, type: "auto", value: 5 },
+    { id: "auto3", name: "Clicker Factory", desc: "+25 per second", baseCost: 5000, type: "auto", value: 25 },
+  ];
+
+  let state = {
+    score: 0,
+    totalClicks: 0,
+    owned: {}, // id -> count
+  };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state.score = parsed.score || 0;
+        state.totalClicks = parsed.totalClicks || 0;
+        state.owned = parsed.owned || {};
+      }
+    } catch (e) {
+      console.warn("Could not load save", e);
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.warn("Could not save", e);
+    }
+  }
+
+  function costOf(upgrade) {
+    const count = state.owned[upgrade.id] || 0;
+    return Math.floor(upgrade.baseCost * Math.pow(1.15, count));
+  }
+
+  function perClick() {
+    let v = 1;
+    for (const u of upgrades) {
+      if (u.type === "click") v += u.value * (state.owned[u.id] || 0);
+    }
+    return v;
+  }
+
+  function perSecond() {
+    let v = 0;
+    for (const u of upgrades) {
+      if (u.type === "auto") v += u.value * (state.owned[u.id] || 0);
+    }
+    return v;
+  }
+
+  function format(n) {
+    if (n < 1000) return Math.floor(n).toString();
+    const units = ["K", "M", "B", "T", "Qa", "Qi"];
+    let i = -1;
+    while (n >= 1000 && i < units.length - 1) {
+      n /= 1000;
+      i++;
+    }
+    return n.toFixed(2) + units[i];
+  }
+
+  const scoreEl = document.getElementById("score");
+  const statsEl = document.getElementById("stats");
+  const shopEl = document.getElementById("shop");
+  const clickBtn = document.getElementById("clickBtn");
+  const resetBtn = document.getElementById("resetBtn");
+
+  function buildShop() {
+    shopEl.innerHTML = "";
+    for (const u of upgrades) {
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const info = document.createElement("div");
+      info.className = "info";
+      const name = document.createElement("div");
+      name.className = "name";
+      const desc = document.createElement("div");
+      desc.className = "desc";
+      info.appendChild(name);
+      info.appendChild(desc);
+
+      const btn = document.createElement("button");
+      btn.addEventListener("click", () => buy(u));
+
+      row.appendChild(info);
+      row.appendChild(btn);
+      shopEl.appendChild(row);
+
+      u._els = { name, desc, btn };
+    }
+  }
+
+  function buy(u) {
+    const cost = costOf(u);
+    if (state.score < cost) return;
+    state.score -= cost;
+    state.owned[u.id] = (state.owned[u.id] || 0) + 1;
+    save();
+    render();
+  }
+
+  function render() {
+    scoreEl.textContent = format(state.score);
+    statsEl.textContent =
+      format(perClick()) + " per click \u00b7 " + format(perSecond()) + " per second";
+
+    for (const u of upgrades) {
+      const count = state.owned[u.id] || 0;
+      const cost = costOf(u);
+      const { name, desc, btn } = u._els;
+      name.textContent = u.name + (count > 0 ? " (x" + count + ")" : "");
+      desc.textContent = u.desc;
+      btn.textContent = "Buy: " + format(cost);
+      btn.disabled = state.score < cost;
+    }
+  }
+
+  clickBtn.addEventListener("click", () => {
+    state.score += perClick();
+    state.totalClicks++;
+    save();
+    render();
+  });
+
+  resetBtn.addEventListener("click", () => {
+    if (!confirm("Reset all progress?")) return;
+    state = { score: 0, totalClicks: 0, owned: {} };
+    save();
+    render();
+  });
+
+  // Auto income tick
+  setInterval(() => {
+    const ps = perSecond();
+    if (ps > 0) {
+      state.score += ps;
+      render();
+    }
+  }, 1000);
+
+  // Periodic save
+  setInterval(save, 5000);
+
+  load();
+  buildShop();
+  render();
+</script>
+</body>
+</html>
