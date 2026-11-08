@@ -83,18 +83,91 @@
     cursor: pointer;
     font-size: 0.75rem;
   }
+  .layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    width: min(760px, 96vw);
+    justify-content: center;
+  }
+  .main-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .rebirth-panel {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 16px;
+    border-radius: 12px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    text-align: center;
+  }
+  .rebirth-panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    color: #fbbf24;
+  }
+  .rebirth-panel .rb-count {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .rebirth-panel .rb-mult {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+  }
+  .rebirth-panel .rb-req {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  #rebirthBtn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #fbbf24;
+    color: #451a03;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #rebirthBtn:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+  @media (max-width: 640px) {
+    .layout { flex-direction: column; align-items: center; }
+    .rebirth-panel { width: min(420px, 92vw); }
+  }
 </style>
 </head>
 <body>
   <h1>Press This Red Button Or You'll Be Sorry</h1>
-  <div class="score" id="score">0</div>
-  <div class="stats" id="stats">0 per click &middot; 0 per second</div>
+  <div class="layout">
+    <div class="main-col">
+      <div class="score" id="score">0</div>
+      <div class="stats" id="stats">0 per click &middot; 0 per second</div>
 
-  <button id="clickBtn">CLICK</button>
+      <button id="clickBtn">CLICK</button>
 
-  <div class="shop" id="shop"></div>
+      <div class="shop" id="shop"></div>
 
-  <button class="reset" id="resetBtn">Reset game</button>
+      <button class="reset" id="resetBtn">Reset game</button>
+    </div>
+
+    <div class="rebirth-panel">
+      <h2>Rebirth</h2>
+      <div class="rb-count" id="rbCount">0</div>
+      <div class="rb-mult" id="rbMult">x1.00 income</div>
+      <div class="rb-req" id="rbReq"></div>
+      <button id="rebirthBtn" disabled>Rebirth</button>
+    </div>
+  </div>
 
 <script>
   const SAVE_KEY = "clickerGameSave";
@@ -136,7 +209,30 @@
     score: 0,
     totalClicks: 0,
     owned: {}, // id -> count
+    rebirths: 0,
   };
+
+  // Index of "Clicker Factory" (auto3) in the upgrades list.
+  const REBIRTH_BASE_INDEX = upgrades.findIndex((u) => u.id === "auto3");
+
+  // Number of upgrades that must be owned to perform the next rebirth.
+  // First rebirth: through Clicker Factory. Each subsequent: +5 upgrades.
+  function rebirthRequirement() {
+    return REBIRTH_BASE_INDEX + 1 + state.rebirths * 5;
+  }
+
+  function rebirthMultiplier() {
+    return 1 + state.rebirths * 0.5;
+  }
+
+  function canRebirth() {
+    const req = rebirthRequirement();
+    if (req > upgrades.length) return false;
+    for (let i = 0; i < req; i++) {
+      if (!(state.owned[upgrades[i].id] > 0)) return false;
+    }
+    return true;
+  }
 
   function load() {
     try {
@@ -146,6 +242,7 @@
         state.score = parsed.score || 0;
         state.totalClicks = parsed.totalClicks || 0;
         state.owned = parsed.owned || {};
+        state.rebirths = parsed.rebirths || 0;
       }
     } catch (e) {
       console.warn("Could not load save", e);
@@ -170,7 +267,7 @@
     for (const u of upgrades) {
       if (u.type === "click") v += u.value * (state.owned[u.id] || 0);
     }
-    return v;
+    return v * rebirthMultiplier();
   }
 
   function perSecond() {
@@ -178,7 +275,7 @@
     for (const u of upgrades) {
       if (u.type === "auto") v += u.value * (state.owned[u.id] || 0);
     }
-    return v;
+    return v * rebirthMultiplier();
   }
 
   function format(n) {
@@ -197,6 +294,10 @@
   const shopEl = document.getElementById("shop");
   const clickBtn = document.getElementById("clickBtn");
   const resetBtn = document.getElementById("resetBtn");
+  const rbCountEl = document.getElementById("rbCount");
+  const rbMultEl = document.getElementById("rbMult");
+  const rbReqEl = document.getElementById("rbReq");
+  const rebirthBtn = document.getElementById("rebirthBtn");
 
   function buildShop() {
     shopEl.innerHTML = "";
@@ -247,6 +348,20 @@
       btn.textContent = "Buy: " + format(cost);
       btn.disabled = state.score < cost;
     }
+
+    rbCountEl.textContent = state.rebirths;
+    rbMultEl.textContent = "x" + rebirthMultiplier().toFixed(2) + " income";
+
+    const req = rebirthRequirement();
+    if (req > upgrades.length) {
+      rbReqEl.textContent = "Max rebirths reached!";
+      rebirthBtn.disabled = true;
+    } else {
+      const target = upgrades[req - 1];
+      rbReqEl.textContent =
+        "Own the first " + req + " upgrades (through " + target.name + ")";
+      rebirthBtn.disabled = !canRebirth();
+    }
   }
 
   clickBtn.addEventListener("click", () => {
@@ -258,7 +373,17 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset all progress?")) return;
-    state = { score: 0, totalClicks: 0, owned: {} };
+    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0 };
+    save();
+    render();
+  });
+
+  rebirthBtn.addEventListener("click", () => {
+    if (!canRebirth()) return;
+    if (!confirm("Rebirth? You'll lose your score and upgrades, but gain a permanent income boost.")) return;
+    state.rebirths += 1;
+    state.score = 0;
+    state.owned = {};
     save();
     render();
   });
