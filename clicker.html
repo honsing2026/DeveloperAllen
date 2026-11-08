@@ -38,6 +38,24 @@
     transform: translateY(6px);
     box-shadow: 0 2px 0 #7f1d1d, 0 4px 12px rgba(0,0,0,0.4);
   }
+  #clickBtn.golden {
+    background: radial-gradient(circle at 30% 30%, #fde047, #ca8a04);
+    box-shadow: 0 8px 0 #854d0e, 0 0 40px 10px rgba(253, 224, 71, 0.7);
+  }
+  .float-golden {
+    position: fixed;
+    pointer-events: none;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #fde047;
+    text-shadow: 0 0 8px rgba(253, 224, 71, 0.9);
+    animation: floatUp 1s ease-out forwards;
+    z-index: 100;
+  }
+  @keyframes floatUp {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to { opacity: 0; transform: translate(-50%, -80px); }
+  }
   .shop {
     margin-top: 28px;
     width: min(420px, 92vw);
@@ -369,8 +387,29 @@
     }
   }
 
-  clickBtn.addEventListener("click", () => {
-    state.score += perClick();
+  const GOLDEN_CHANCE = 0.01; // 1 in 100
+  const GOLDEN_MULTIPLIER = 100;
+
+  function showGoldenFloat(amount, x, y) {
+    const el = document.createElement("div");
+    el.className = "float-golden";
+    el.textContent = "GOLDEN! +" + format(amount);
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  clickBtn.addEventListener("click", (e) => {
+    let gain = perClick();
+    const isGolden = Math.random() < GOLDEN_CHANCE;
+    if (isGolden) {
+      gain *= GOLDEN_MULTIPLIER;
+      clickBtn.classList.add("golden");
+      setTimeout(() => clickBtn.classList.remove("golden"), 400);
+      showGoldenFloat(gain, e.clientX, e.clientY);
+    }
+    state.score += gain;
     state.totalClicks++;
     save();
     render();
