@@ -180,6 +180,40 @@
     margin-bottom: 10px;
     min-height: 1em;
   }
+  #switchPage {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100%;
+    padding: 24px;
+  }
+  #switchPage.active { display: flex; }
+  #homePage.hidden { display: none; }
+  .switch-card {
+    width: min(420px, 92vw);
+    padding: 24px;
+    border-radius: 12px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    text-align: center;
+  }
+  .switch-card h2 {
+    margin: 0 0 16px;
+    font-size: 1.3rem;
+    color: #a78bfa;
+  }
+  #backBtn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background: none;
+    color: #e2e8f0;
+    font-weight: 700;
+    cursor: pointer;
+  }
   .rebirth-panel h2 {
     margin: 0 0 8px;
     font-size: 1rem;
@@ -228,6 +262,7 @@
 </style>
 </head>
 <body>
+  <div id="homePage">
   <h1>Click This Red Button</h1>
   <div class="layout">
     <div class="main-col">
@@ -252,9 +287,19 @@
     <div class="switch-panel">
       <h2>Switch Clickers</h2>
       <div class="sw-req" id="swReq"></div>
+      <button id="switchBtn" disabled>Switch Clickers</button>
+    </div>
+  </div>
+  </div>
+
+  <div id="switchPage">
+    <div class="switch-card">
+      <h2>Switch Clickers</h2>
       <div class="load-bar"><div class="load-bar-fill" id="loadFill"></div></div>
       <div class="sw-status" id="swStatus"></div>
-      <button id="switchBtn" disabled>Switch Clickers</button>
+      <button id="switchLoadBtn">Start Switching</button>
+      <br>
+      <button id="backBtn">Back to Home</button>
     </div>
   </div>
 
@@ -391,6 +436,10 @@
   const switchBtn = document.getElementById("switchBtn");
   const loadFillEl = document.getElementById("loadFill");
   const swStatusEl = document.getElementById("swStatus");
+  const homePageEl = document.getElementById("homePage");
+  const switchPageEl = document.getElementById("switchPage");
+  const switchLoadBtn = document.getElementById("switchLoadBtn");
+  const backBtn = document.getElementById("backBtn");
 
   const SWITCH_REQUIRED_REBIRTHS = 10;
   const SWITCH_LOAD_MS = 5000;
@@ -465,8 +514,7 @@
     const unlocked = state.rebirths >= SWITCH_REQUIRED_REBIRTHS;
     if (unlocked) {
       swReqEl.textContent = "Unlocked!";
-      switchBtn.disabled = switchLoading;
-      switchBtn.textContent = switchLoading ? "Switching..." : "Switch Clickers";
+      switchBtn.disabled = false;
     } else {
       const remaining = SWITCH_REQUIRED_REBIRTHS - state.rebirths;
       swReqEl.textContent =
@@ -529,13 +577,23 @@
 
   switchBtn.addEventListener("click", () => {
     if (state.rebirths < SWITCH_REQUIRED_REBIRTHS) return;
+    homePageEl.classList.add("hidden");
+    switchPageEl.classList.add("active");
+  });
+
+  backBtn.addEventListener("click", () => {
+    switchPageEl.classList.remove("active");
+    homePageEl.classList.remove("hidden");
+  });
+
+  switchLoadBtn.addEventListener("click", () => {
     if (switchLoading) return;
 
     switchLoading = true;
     switchProgress = 0;
     loadFillEl.style.width = "0%";
     swStatusEl.textContent = "Switching...";
-    render();
+    switchLoadBtn.disabled = true;
 
     const start = Date.now();
     switchTimer = setInterval(() => {
@@ -547,6 +605,7 @@
         clearInterval(switchTimer);
         switchTimer = null;
         switchLoading = false;
+        switchLoadBtn.disabled = false;
         const u = grantRandomUpgrade();
         swStatusEl.textContent = "Got: " + u.name + "!";
         save();
