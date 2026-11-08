@@ -614,7 +614,7 @@ def main():
     if "page" not in st.session_state:
         st.session_state.page = "Home"
     if "xp" not in st.session_state:
-        st.session_state.xp = saved.get("xp", 1000)
+        st.session_state.xp = saved.get("xp", 0)
     if "xp_gained" not in st.session_state:
         st.session_state.xp_gained = False
     if "xp_animate" not in st.session_state:
