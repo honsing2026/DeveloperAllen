@@ -279,6 +279,40 @@
     color: #94a3b8;
     margin-bottom: 12px;
   }
+  .luck-box {
+    margin: 12px 0;
+    padding: 12px;
+    border-radius: 10px;
+    background: #0f172a;
+    border: 1px solid #334155;
+  }
+  .luck-box .luck-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f472b6;
+    margin-bottom: 4px;
+  }
+  .luck-box .luck-desc {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+  #luckBtn {
+    width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    background: #f472b6;
+    color: #500724;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #luckBtn:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+  }
   .history {
     margin-top: 16px;
     max-height: 140px;
@@ -398,6 +432,11 @@
       <div class="load-bar"><div class="load-bar-fill" id="loadFill"></div></div>
       <div class="gacha-result" id="gachaResult"></div>
       <div class="pity" id="pityText"></div>
+      <div class="luck-box">
+        <div class="luck-title" id="luckTitle">Gacha Luck: Lv 0</div>
+        <div class="luck-desc" id="luckDesc"></div>
+        <button id="luckBtn">Upgrade Luck</button>
+      </div>
       <button id="switchLoadBtn">Roll Gacha</button>
       <button id="roll10Btn">Roll 10x</button>
       <br>
@@ -462,6 +501,7 @@
     history: [], // recent gacha results
     level: 1,
     xp: 0,
+    luck: 0, // gacha luck level
   };
 
   // Index of "Clicker Factory" (auto3) in the upgrades list.
@@ -521,6 +561,7 @@
         state.history = parsed.history || [];
         state.level = parsed.level || 1;
         state.xp = parsed.xp || 0;
+        state.luck = parsed.luck || 0;
       }
     } catch (e) {
       console.warn("Could not load save", e);
@@ -592,6 +633,9 @@
   const levelTextEl = document.getElementById("levelText");
   const xpTextEl = document.getElementById("xpText");
   const levelFillEl = document.getElementById("levelFill");
+  const luckTitleEl = document.getElementById("luckTitle");
+  const luckDescEl = document.getElementById("luckDesc");
+  const luckBtn = document.getElementById("luckBtn");
 
   const SWITCH_REQUIRED_REBIRTHS = 10;
   const SWITCH_LOAD_MS = 5000;
@@ -612,15 +656,38 @@
     { name: "Mythic", weight: 0.1, copies: 250 },
   ];
 
+  // Luck shifts weight from Common toward the rarer tiers.
+  // Each luck level moves 3 weight points from Common into the rare tiers.
+  const LUCK_SHIFT_PER_LEVEL = 3;
+  const LUCK_MAX_LEVEL = 20;
+
+  function luckCost() {
+    return Math.floor(5000 * Math.pow(2, state.luck));
+  }
+
+  // Returns rarity weights adjusted for the current luck level.
+  function adjustedWeights() {
+    const weights = RARITIES.map((r) => r.weight);
+    let shift = Math.min(state.luck * LUCK_SHIFT_PER_LEVEL, weights[0] - 1);
+    weights[0] -= shift;
+    // Distribute the shifted weight across the rarer tiers, favoring the top.
+    const distribution = [0.1, 0.25, 0.35, 0.3]; // Rare, Epic, Legendary, Mythic
+    for (let i = 0; i < distribution.length; i++) {
+      weights[i + 1] += shift * distribution[i];
+    }
+    return weights;
+  }
+
   function rollRarity() {
     // Mythic pity takes priority over Legendary pity.
     if (state.mythicPity >= MYTHIC_PITY_THRESHOLD - 1) return RARITIES[4];
     if (state.pity >= PITY_THRESHOLD - 1) return RARITIES[3];
-    const total = RARITIES.reduce((s, r) => s + r.weight, 0);
+    const weights = adjustedWeights();
+    const total = weights.reduce((s, w) => s + w, 0);
     let roll = Math.random() * total;
-    for (const r of RARITIES) {
-      roll -= r.weight;
-      if (roll <= 0) return r;
+    for (let i = 0; i < RARITIES.length; i++) {
+      roll -= weights[i];
+      if (roll <= 0) return RARITIES[i];
     }
     return RARITIES[0];
   }
@@ -663,6 +730,24 @@
     roll10Btn.textContent = canAfford10
       ? "Roll 10x (" + format(cost * 10) + ")"
       : "Need " + format(cost * 10);
+
+    // Luck upgrade UI
+    luckTitleEl.textContent = "Gacha Luck: Lv " + state.luck;
+    if (state.luck >= LUCK_MAX_LEVEL) {
+      luckDescEl.textContent = "Max luck reached! Best odds unlocked.";
+      luckBtn.textContent = "Maxed";
+      luckBtn.disabled = true;
+    } else {
+      const w = adjustedWeights();
+      const total = w.reduce((s, x) => s + x, 0);
+      const mythicPct = ((w[4] / total) * 100).toFixed(2);
+      const legendaryPct = ((w[3] / total) * 100).toFixed(2);
+      luckDescEl.textContent =
+        "Mythic: " + mythicPct + "% \u00b7 Legendary: " + legendaryPct + "%";
+      const lc = luckCost();
+      luckBtn.textContent = "Upgrade Luck: " + format(lc);
+      luckBtn.disabled = state.score < lc;
+    }
   }
 
   function buildShop() {
@@ -827,7 +912,7 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset all progress?")) return;
-    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, history: [], level: 1, xp: 0 };
+    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, history: [], level: 1, xp: 0, luck: 0 };
     save();
     render();
   });
@@ -939,6 +1024,16 @@
 
   switchLoadBtn.addEventListener("click", () => startRoll(1));
   roll10Btn.addEventListener("click", () => startRoll(10));
+
+  luckBtn.addEventListener("click", () => {
+    if (state.luck >= LUCK_MAX_LEVEL) return;
+    const lc = luckCost();
+    if (state.score < lc) return;
+    state.score -= lc;
+    state.luck += 1;
+    save();
+    render();
+  });
 
   // Auto income tick
   setInterval(() => {
