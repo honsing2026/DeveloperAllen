@@ -266,6 +266,7 @@
   .rarity-Rare { color: #38bdf8; }
   .rarity-Epic { color: #c084fc; }
   .rarity-Legendary { color: #fbbf24; text-shadow: 0 0 8px rgba(251,191,36,0.6); }
+  .rarity-Mythic { color: #f472b6; text-shadow: 0 0 12px rgba(244,114,182,0.9); font-weight: 700; }
   .gacha-result {
     min-height: 3.2em;
     margin: 12px 0;
@@ -398,6 +399,7 @@
       <div class="gacha-result" id="gachaResult"></div>
       <div class="pity" id="pityText"></div>
       <button id="switchLoadBtn">Roll Gacha</button>
+      <button id="roll10Btn">Roll 10x</button>
       <br>
       <button id="backBtn">Back to Home</button>
       <div class="history" id="history"></div>
@@ -456,6 +458,7 @@
     owned: {}, // id -> count
     rebirths: 0,
     pity: 0, // rolls since last Legendary
+    mythicPity: 0, // rolls since last Mythic
     history: [], // recent gacha results
     level: 1,
     xp: 0,
@@ -514,6 +517,7 @@
         state.owned = parsed.owned || {};
         state.rebirths = parsed.rebirths || 0;
         state.pity = parsed.pity || 0;
+        state.mythicPity = parsed.mythicPity || 0;
         state.history = parsed.history || [];
         state.level = parsed.level || 1;
         state.xp = parsed.xp || 0;
@@ -579,6 +583,7 @@
   const homePageEl = document.getElementById("homePage");
   const switchPageEl = document.getElementById("switchPage");
   const switchLoadBtn = document.getElementById("switchLoadBtn");
+  const roll10Btn = document.getElementById("roll10Btn");
   const backBtn = document.getElementById("backBtn");
   const gachaCostEl = document.getElementById("gachaCost");
   const gachaResultEl = document.getElementById("gachaResult");
@@ -598,15 +603,19 @@
   const GACHA_MIN_COST = 1000;
   const GACHA_SCORE_FRACTION = 0.1; // cost is 10% of current score
   const PITY_THRESHOLD = 20; // guaranteed Legendary after this many non-Legendary rolls
+  const MYTHIC_PITY_THRESHOLD = 50; // guaranteed Mythic after this many non-Mythic rolls
   const RARITIES = [
     { name: "Common", weight: 60, copies: 1 },
     { name: "Rare", weight: 25, copies: 3 },
     { name: "Epic", weight: 12, copies: 10 },
-    { name: "Legendary", weight: 3, copies: 50 },
+    { name: "Legendary", weight: 2.9, copies: 50 },
+    { name: "Mythic", weight: 0.1, copies: 250 },
   ];
 
   function rollRarity() {
-    if (state.pity >= PITY_THRESHOLD - 1) return RARITIES[3]; // force Legendary
+    // Mythic pity takes priority over Legendary pity.
+    if (state.mythicPity >= MYTHIC_PITY_THRESHOLD - 1) return RARITIES[4];
+    if (state.pity >= PITY_THRESHOLD - 1) return RARITIES[3];
     const total = RARITIES.reduce((s, r) => s + r.weight, 0);
     let roll = Math.random() * total;
     for (const r of RARITIES) {
@@ -625,8 +634,8 @@
     const cost = gachaCost();
     gachaCostEl.textContent = format(cost);
     pityTextEl.textContent =
-      "Pity: " + state.pity + "/" + PITY_THRESHOLD +
-      " (guaranteed Legendary at " + PITY_THRESHOLD + ")";
+      "Legendary pity: " + state.pity + "/" + PITY_THRESHOLD +
+      " \u00b7 Mythic pity: " + state.mythicPity + "/" + MYTHIC_PITY_THRESHOLD;
 
     if (state.history.length === 0) {
       historyEl.innerHTML = '<div class="empty">No rolls yet.</div>';
@@ -648,6 +657,12 @@
       : canAfford
       ? "Roll Gacha"
       : "Need " + format(cost) + " score";
+
+    const canAfford10 = state.score >= cost * 10;
+    roll10Btn.disabled = switchLoading || !canAfford10;
+    roll10Btn.textContent = canAfford10
+      ? "Roll 10x (" + format(cost * 10) + ")"
+      : "Need " + format(cost * 10);
   }
 
   function buildShop() {
@@ -812,7 +827,7 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset all progress?")) return;
-    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, history: [], level: 1, xp: 0 };
+    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, history: [], level: 1, xp: 0 };
     save();
     render();
   });
@@ -833,6 +848,49 @@
     return u;
   }
 
+  // Applies a single roll's result to state and returns the result object.
+  function applyRoll() {
+    const rarity = rollRarity();
+    const u = grantRandomUpgrade(rarity.copies);
+
+    if (rarity.name === "Mythic") {
+      state.mythicPity = 0;
+      state.pity = 0;
+    } else if (rarity.name === "Legendary") {
+      state.pity = 0;
+      state.mythicPity += 1;
+    } else {
+      state.pity += 1;
+      state.mythicPity += 1;
+    }
+
+    const result = { rarity: rarity.name, name: u.name, copies: rarity.copies };
+    state.history.unshift(result);
+    if (state.history.length > 20) state.history.length = 20;
+    return result;
+  }
+
+  function runRolls(count) {
+    const results = [];
+    for (let i = 0; i < count; i++) results.push(applyRoll());
+    return results;
+  }
+
+  function showRollResults(results) {
+    // Show the best result prominently, list all below.
+    const order = { Mythic: 4, Legendary: 3, Epic: 2, Rare: 1, Common: 0 };
+    const best = results.reduce((a, b) => (order[b.rarity] > order[a.rarity] ? b : a));
+    let html =
+      '<div class="big rarity-' + best.rarity + '">' + best.rarity + "!</div>" +
+      '<div class="rarity-' + best.rarity + '">' + best.name + " x" + best.copies + "</div>";
+    if (results.length > 1) {
+      html += '<div style="font-size:0.75rem;color:#94a3b8;margin-top:6px;">' +
+        results.map((r) => '<span class="rarity-' + r.rarity + '">' + r.rarity + "</span>").join(" \u00b7 ") +
+        "</div>";
+    }
+    gachaResultEl.innerHTML = html;
+  }
+
   switchBtn.addEventListener("click", () => {
     if (state.rebirths < SWITCH_REQUIRED_REBIRTHS) return;
     homePageEl.classList.add("hidden");
@@ -845,9 +903,9 @@
     homePageEl.classList.remove("hidden");
   });
 
-  switchLoadBtn.addEventListener("click", () => {
+  function startRoll(count) {
     if (switchLoading) return;
-    const cost = gachaCost();
+    const cost = gachaCost() * count;
     if (state.score < cost) return;
 
     state.score -= cost;
@@ -856,6 +914,7 @@
     loadFillEl.style.width = "0%";
     gachaResultEl.innerHTML = "";
     switchLoadBtn.disabled = true;
+    roll10Btn.disabled = true;
     render();
 
     const start = Date.now();
@@ -869,31 +928,17 @@
         switchTimer = null;
         switchLoading = false;
 
-        const rarity = rollRarity();
-        const u = grantRandomUpgrade(rarity.copies);
-
-        if (rarity.name === "Legendary") {
-          state.pity = 0;
-        } else {
-          state.pity += 1;
-        }
-
-        state.history.unshift({
-          rarity: rarity.name,
-          name: u.name,
-          copies: rarity.copies,
-        });
-        if (state.history.length > 20) state.history.length = 20;
-
-        gachaResultEl.innerHTML =
-          '<div class="big rarity-' + rarity.name + '">' + rarity.name + "!</div>" +
-          '<div class="rarity-' + rarity.name + '">' + u.name + " x" + rarity.copies + "</div>";
+        const results = runRolls(count);
+        showRollResults(results);
 
         save();
         render();
       }
     }, 100);
-  });
+  }
+
+  switchLoadBtn.addEventListener("click", () => startRoll(1));
+  roll10Btn.addEventListener("click", () => startRoll(10));
 
   // Auto income tick
   setInterval(() => {
