@@ -285,19 +285,19 @@
     </div>
 
     <div class="switch-panel">
-      <h2>Switch Clickers</h2>
+      <h2>Clicker Gacha</h2>
       <div class="sw-req" id="swReq"></div>
-      <button id="switchBtn" disabled>Switch Clickers</button>
+      <button id="switchBtn" disabled>Clicker Gacha</button>
     </div>
   </div>
   </div>
 
   <div id="switchPage">
     <div class="switch-card">
-      <h2>Switch Clickers</h2>
+      <h2>Clicker Gacha</h2>
       <div class="load-bar"><div class="load-bar-fill" id="loadFill"></div></div>
       <div class="sw-status" id="swStatus"></div>
-      <button id="switchLoadBtn">Start Switching</button>
+      <button id="switchLoadBtn">Roll Gacha</button>
       <br>
       <button id="backBtn">Back to Home</button>
     </div>
@@ -592,7 +592,7 @@
     switchLoading = true;
     switchProgress = 0;
     loadFillEl.style.width = "0%";
-    swStatusEl.textContent = "Switching...";
+    swStatusEl.textContent = "Rolling...";
     switchLoadBtn.disabled = true;
 
     const start = Date.now();
