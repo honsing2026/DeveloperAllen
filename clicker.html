@@ -88,12 +88,14 @@
     align-items: flex-start;
     gap: 24px;
     width: min(760px, 96vw);
+    margin: 0 auto;
     justify-content: center;
   }
   .main-col {
     display: flex;
     flex-direction: column;
     align-items: center;
+    flex: 1;
   }
   .rebirth-panel {
     width: 220px;
@@ -142,6 +144,7 @@
   }
   @media (max-width: 640px) {
     .layout { flex-direction: column; align-items: center; }
+    .main-col { flex: none; width: 100%; }
     .rebirth-panel { width: min(420px, 92vw); }
   }
 </style>
