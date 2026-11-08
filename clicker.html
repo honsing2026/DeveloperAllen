@@ -20,7 +20,32 @@
   }
   h1 { margin: 0 0 8px; font-size: 1.6rem; }
   .score { font-size: 2.4rem; font-weight: 700; margin-bottom: 4px; }
-  .stats { font-size: 0.85rem; color: #94a3b8; margin-bottom: 20px; }
+  .stats { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
+  .level-bar {
+    width: min(420px, 92vw);
+    margin-bottom: 20px;
+  }
+  .level-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 4px;
+  }
+  .level-info .lvl { color: #38bdf8; font-weight: 700; }
+  .level-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #334155;
+    overflow: hidden;
+  }
+  .level-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    transition: width 0.2s ease-out;
+  }
   #clickBtn {
     width: 160px;
     height: 160px;
@@ -334,6 +359,14 @@
       <div class="score" id="score">0</div>
       <div class="stats" id="stats">0 per click &middot; 0 per second</div>
 
+      <div class="level-bar">
+        <div class="level-info">
+          <span class="lvl" id="levelText">Level 1</span>
+          <span id="xpText">0 / 0 XP</span>
+        </div>
+        <div class="level-track"><div class="level-fill" id="levelFill"></div></div>
+      </div>
+
       <button id="clickBtn">CLICK</button>
 
       <div class="shop" id="shop"></div>
@@ -424,6 +457,8 @@
     rebirths: 0,
     pity: 0, // rolls since last Legendary
     history: [], // recent gacha results
+    level: 1,
+    xp: 0,
   };
 
   // Index of "Clicker Factory" (auto3) in the upgrades list.
@@ -437,6 +472,27 @@
 
   function rebirthMultiplier() {
     return 1 + state.rebirths * 0.5;
+  }
+
+  // Level system: each level grants +10% income.
+  function levelMultiplier() {
+    return 1 + (state.level - 1) * 0.1;
+  }
+
+  // XP needed to reach the next level from the current one.
+  function xpForNextLevel() {
+    return Math.floor(50 * Math.pow(1.25, state.level - 1));
+  }
+
+  function addXp(amount) {
+    state.xp += amount;
+    let leveled = false;
+    while (state.xp >= xpForNextLevel()) {
+      state.xp -= xpForNextLevel();
+      state.level += 1;
+      leveled = true;
+    }
+    return leveled;
   }
 
   function canRebirth() {
@@ -459,6 +515,8 @@
         state.rebirths = parsed.rebirths || 0;
         state.pity = parsed.pity || 0;
         state.history = parsed.history || [];
+        state.level = parsed.level || 1;
+        state.xp = parsed.xp || 0;
       }
     } catch (e) {
       console.warn("Could not load save", e);
@@ -483,7 +541,7 @@
     for (const u of upgrades) {
       if (u.type === "click") v += u.value * (state.owned[u.id] || 0);
     }
-    return v * rebirthMultiplier();
+    return v * rebirthMultiplier() * levelMultiplier();
   }
 
   function perSecond() {
@@ -491,7 +549,7 @@
     for (const u of upgrades) {
       if (u.type === "auto") v += u.value * (state.owned[u.id] || 0);
     }
-    return v * rebirthMultiplier();
+    return v * rebirthMultiplier() * levelMultiplier();
   }
 
   function format(n) {
@@ -526,6 +584,9 @@
   const gachaResultEl = document.getElementById("gachaResult");
   const pityTextEl = document.getElementById("pityText");
   const historyEl = document.getElementById("history");
+  const levelTextEl = document.getElementById("levelText");
+  const xpTextEl = document.getElementById("xpText");
+  const levelFillEl = document.getElementById("levelFill");
 
   const SWITCH_REQUIRED_REBIRTHS = 10;
   const SWITCH_LOAD_MS = 5000;
@@ -534,7 +595,8 @@
   let switchTimer = null;
 
   // Gacha configuration
-  const GACHA_COST = 1000;
+  const GACHA_MIN_COST = 1000;
+  const GACHA_SCORE_FRACTION = 0.1; // cost is 10% of current score
   const PITY_THRESHOLD = 20; // guaranteed Legendary after this many non-Legendary rolls
   const RARITIES = [
     { name: "Common", weight: 60, copies: 1 },
@@ -554,8 +616,14 @@
     return RARITIES[0];
   }
 
+  // Gacha cost scales with current score, with a minimum floor.
+  function gachaCost() {
+    return Math.max(GACHA_MIN_COST, Math.floor(state.score * GACHA_SCORE_FRACTION));
+  }
+
   function renderGacha() {
-    gachaCostEl.textContent = format(GACHA_COST);
+    const cost = gachaCost();
+    gachaCostEl.textContent = format(cost);
     pityTextEl.textContent =
       "Pity: " + state.pity + "/" + PITY_THRESHOLD +
       " (guaranteed Legendary at " + PITY_THRESHOLD + ")";
@@ -573,13 +641,13 @@
         .join("");
     }
 
-    const canAfford = state.score >= GACHA_COST;
+    const canAfford = state.score >= cost;
     switchLoadBtn.disabled = switchLoading || !canAfford;
     switchLoadBtn.textContent = switchLoading
       ? "Rolling..."
       : canAfford
       ? "Roll Gacha"
-      : "Need " + format(GACHA_COST) + " score";
+      : "Need " + format(cost) + " score";
   }
 
   function buildShop() {
@@ -658,6 +726,11 @@
       maxBtn.disabled = state.score < cost;
     }
 
+    levelTextEl.textContent = "Level " + state.level;
+    xpTextEl.textContent = format(state.xp) + " / " + format(xpForNextLevel()) + " XP";
+    levelFillEl.style.width =
+      Math.min(100, (state.xp / xpForNextLevel()) * 100).toFixed(1) + "%";
+
     rbCountEl.textContent = state.rebirths;
     rbMultEl.textContent = "x" + rebirthMultiplier().toFixed(2) + " income";
 
@@ -718,6 +791,7 @@
     showFloat(gain, x, y, isGolden);
     state.score += gain;
     state.totalClicks++;
+    addXp(Math.max(1, Math.floor(gain / 10)));
     bumpScore();
     save();
     render();
@@ -738,7 +812,7 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset all progress?")) return;
-    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0 };
+    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, history: [], level: 1, xp: 0 };
     save();
     render();
   });
@@ -773,9 +847,10 @@
 
   switchLoadBtn.addEventListener("click", () => {
     if (switchLoading) return;
-    if (state.score < GACHA_COST) return;
+    const cost = gachaCost();
+    if (state.score < cost) return;
 
-    state.score -= GACHA_COST;
+    state.score -= cost;
     switchLoading = true;
     switchProgress = 0;
     loadFillEl.style.width = "0%";
@@ -825,6 +900,7 @@
     const ps = perSecond();
     if (ps > 0) {
       state.score += ps;
+      addXp(Math.max(1, Math.floor(ps / 10)));
       render();
     }
   }, 1000);
