@@ -52,6 +52,33 @@
     animation: floatUp 1s ease-out forwards;
     z-index: 100;
   }
+  .float-normal {
+    position: fixed;
+    pointer-events: none;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #e2e8f0;
+    animation: floatUp 0.8s ease-out forwards;
+    z-index: 100;
+  }
+  .score.bump {
+    animation: scoreBump 0.15s ease-out;
+  }
+  @keyframes scoreBump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .item .buy-max {
+    background: #0ea5e9;
+    color: #082f49;
+    margin-left: 6px;
+  }
+  .item .buy-max:disabled {
+    background: #334155;
+    color: #64748b;
+  }
+  .item .btns { display: flex; flex-direction: column; gap: 4px; }
   @keyframes floatUp {
     from { opacity: 1; transform: translate(-50%, 0); }
     to { opacity: 0; transform: translate(-50%, -80px); }
@@ -353,7 +380,7 @@
     score: 0,
     totalClicks: 0,
     owned: {}, // id -> count
-    rebirths: 10, // TEMP: testing value, revert to 0
+    rebirths: 0,
   };
 
   // Index of "Clicker Factory" (auto3) in the upgrades list.
@@ -472,14 +499,24 @@
       info.appendChild(name);
       info.appendChild(desc);
 
+      const btns = document.createElement("div");
+      btns.className = "btns";
+
       const btn = document.createElement("button");
       btn.addEventListener("click", () => buy(u));
 
+      const maxBtn = document.createElement("button");
+      maxBtn.className = "buy-max";
+      maxBtn.addEventListener("click", () => buyMax(u));
+
+      btns.appendChild(btn);
+      btns.appendChild(maxBtn);
+
       row.appendChild(info);
-      row.appendChild(btn);
+      row.appendChild(btns);
       shopEl.appendChild(row);
 
-      u._els = { name, desc, btn };
+      u._els = { name, desc, btn, maxBtn };
     }
   }
 
@@ -492,6 +529,20 @@
     render();
   }
 
+  function buyMax(u) {
+    let bought = 0;
+    while (state.score >= costOf(u)) {
+      state.score -= costOf(u);
+      state.owned[u.id] = (state.owned[u.id] || 0) + 1;
+      bought++;
+      if (bought > 10000) break; // safety
+    }
+    if (bought > 0) {
+      save();
+      render();
+    }
+  }
+
   function render() {
     scoreEl.textContent = format(state.score);
     statsEl.textContent =
@@ -500,11 +551,13 @@
     for (const u of upgrades) {
       const count = state.owned[u.id] || 0;
       const cost = costOf(u);
-      const { name, desc, btn } = u._els;
+      const { name, desc, btn, maxBtn } = u._els;
       name.textContent = u.name + (count > 0 ? " (x" + count + ")" : "");
       desc.textContent = u.desc;
       btn.textContent = "Buy: " + format(cost);
       btn.disabled = state.score < cost;
+      maxBtn.textContent = "Max";
+      maxBtn.disabled = state.score < cost;
     }
 
     rbCountEl.textContent = state.rebirths;
@@ -537,29 +590,50 @@
   const GOLDEN_CHANCE = 0.01; // 1 in 100
   const GOLDEN_MULTIPLIER = 100;
 
-  function showGoldenFloat(amount, x, y) {
+  function showFloat(amount, x, y, golden) {
     const el = document.createElement("div");
-    el.className = "float-golden";
-    el.textContent = "GOLDEN! +" + format(amount);
+    el.className = golden ? "float-golden" : "float-normal";
+    el.textContent = (golden ? "GOLDEN! +" : "+") + format(amount);
     el.style.left = x + "px";
     el.style.top = y + "px";
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1000);
+    setTimeout(() => el.remove(), golden ? 1000 : 800);
   }
 
-  clickBtn.addEventListener("click", (e) => {
+  function bumpScore() {
+    scoreEl.classList.remove("bump");
+    // force reflow so the animation restarts
+    void scoreEl.offsetWidth;
+    scoreEl.classList.add("bump");
+  }
+
+  function doClick(x, y) {
     let gain = perClick();
     const isGolden = Math.random() < GOLDEN_CHANCE;
     if (isGolden) {
       gain *= GOLDEN_MULTIPLIER;
       clickBtn.classList.add("golden");
       setTimeout(() => clickBtn.classList.remove("golden"), 400);
-      showGoldenFloat(gain, e.clientX, e.clientY);
     }
+    showFloat(gain, x, y, isGolden);
     state.score += gain;
     state.totalClicks++;
+    bumpScore();
     save();
     render();
+  }
+
+  clickBtn.addEventListener("click", (e) => {
+    doClick(e.clientX, e.clientY);
+  });
+
+  // Spacebar to click
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space" && !switchPageEl.classList.contains("active")) {
+      e.preventDefault();
+      const rect = clickBtn.getBoundingClientRect();
+      doClick(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
   });
 
   resetBtn.addEventListener("click", () => {
@@ -637,7 +711,6 @@
   setInterval(save, 5000);
 
   load();
-  state.rebirths = 10; // TEMP: testing value, revert to 0
   buildShop();
   render();
 </script>
