@@ -123,6 +123,43 @@
     border: 1px solid #334155;
     text-align: center;
   }
+  .switch-panel {
+    position: absolute;
+    top: 0;
+    right: calc(50% + 260px);
+    width: 220px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    text-align: center;
+  }
+  .switch-panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    color: #a78bfa;
+  }
+  .switch-panel .sw-req {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  #switchBtn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #a78bfa;
+    color: #2e1065;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #switchBtn:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+  }
   .rebirth-panel h2 {
     margin: 0 0 8px;
     font-size: 1rem;
@@ -160,7 +197,8 @@
     cursor: not-allowed;
   }
   @media (max-width: 900px) {
-    .rebirth-panel {
+    .rebirth-panel,
+    .switch-panel {
       position: static;
       width: min(420px, 92vw);
       margin-top: 24px;
@@ -189,6 +227,12 @@
       <div class="rb-mult" id="rbMult">x1.00 income</div>
       <div class="rb-req" id="rbReq"></div>
       <button id="rebirthBtn" disabled>Rebirth</button>
+    </div>
+
+    <div class="switch-panel">
+      <h2>Switch Clickers</h2>
+      <div class="sw-req" id="swReq"></div>
+      <button id="switchBtn" disabled>Switch Clickers</button>
     </div>
   </div>
 
@@ -321,6 +365,10 @@
   const rbMultEl = document.getElementById("rbMult");
   const rbReqEl = document.getElementById("rbReq");
   const rebirthBtn = document.getElementById("rebirthBtn");
+  const swReqEl = document.getElementById("swReq");
+  const switchBtn = document.getElementById("switchBtn");
+
+  const SWITCH_REQUIRED_REBIRTHS = 10;
 
   function buildShop() {
     shopEl.innerHTML = "";
@@ -385,6 +433,18 @@
         "Own the first " + req + " upgrades (through " + target.name + ")";
       rebirthBtn.disabled = !canRebirth();
     }
+
+    const unlocked = state.rebirths >= SWITCH_REQUIRED_REBIRTHS;
+    if (unlocked) {
+      swReqEl.textContent = "Unlocked!";
+      switchBtn.disabled = false;
+    } else {
+      const remaining = SWITCH_REQUIRED_REBIRTHS - state.rebirths;
+      swReqEl.textContent =
+        "Reach " + SWITCH_REQUIRED_REBIRTHS + " rebirths to unlock (" +
+        remaining + " to go)";
+      switchBtn.disabled = true;
+    }
   }
 
   const GOLDEN_CHANCE = 0.01; // 1 in 100
@@ -430,6 +490,11 @@
     state.owned = {};
     save();
     render();
+  });
+
+  switchBtn.addEventListener("click", () => {
+    if (state.rebirths < SWITCH_REQUIRED_REBIRTHS) return;
+    alert("Switch Clickers coming soon!");
   });
 
   // Auto income tick
