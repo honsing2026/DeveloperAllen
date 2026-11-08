@@ -84,22 +84,21 @@
     font-size: 0.75rem;
   }
   .layout {
+    position: relative;
     display: flex;
-    align-items: flex-start;
-    gap: 24px;
-    width: min(760px, 96vw);
-    margin: 0 auto;
     justify-content: center;
+    width: 100%;
   }
   .main-col {
     display: flex;
     flex-direction: column;
     align-items: center;
-    flex: 1;
   }
   .rebirth-panel {
+    position: absolute;
+    top: 0;
+    left: calc(50% + 260px);
     width: 220px;
-    flex-shrink: 0;
     padding: 16px;
     border-radius: 12px;
     background: #1e293b;
@@ -142,10 +141,13 @@
     color: #64748b;
     cursor: not-allowed;
   }
-  @media (max-width: 640px) {
+  @media (max-width: 900px) {
+    .rebirth-panel {
+      position: static;
+      width: min(420px, 92vw);
+      margin-top: 24px;
+    }
     .layout { flex-direction: column; align-items: center; }
-    .main-col { flex: none; width: 100%; }
-    .rebirth-panel { width: min(420px, 92vw); }
   }
 </style>
 </head>
