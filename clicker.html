@@ -89,6 +89,53 @@
   .score.bump {
     animation: scoreBump 0.15s ease-out;
   }
+  .combo {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #f97316;
+    height: 1.2em;
+    margin-bottom: 4px;
+    transition: opacity 0.2s;
+  }
+  .combo.hidden { opacity: 0; }
+  .next-hint {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 12px;
+    min-height: 1em;
+  }
+  .toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .toast {
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: #1e293b;
+    border: 1px solid #fbbf24;
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateX(40px); }
+  }
+  .item.affordable {
+    border-color: #22c55e;
+    box-shadow: 0 0 12px rgba(34,197,94,0.25);
+  }
   @keyframes scoreBump {
     0% { transform: scale(1); }
     50% { transform: scale(1.08); }
@@ -393,6 +440,8 @@
     <div class="main-col">
       <div class="score" id="score">0</div>
       <div class="stats" id="stats">0 per click &middot; 0 per second</div>
+      <div class="combo hidden" id="combo"></div>
+      <div class="next-hint" id="nextHint"></div>
 
       <div class="level-bar">
         <div class="level-info">
@@ -424,6 +473,8 @@
     </div>
   </div>
   </div>
+
+  <div class="toast-container" id="toastContainer"></div>
 
   <div id="switchPage">
     <div class="switch-card">
@@ -502,7 +553,15 @@
     level: 1,
     xp: 0,
     luck: 0, // gacha luck level
+    achievements: {}, // id -> true
+    milestones: {}, // threshold -> true
   };
+
+  // Combo tracking (not persisted; resets on reload)
+  let combo = 0;
+  let lastClickTime = 0;
+  const COMBO_WINDOW_MS = 800;
+  const COMBO_MAX = 50;
 
   // Index of "Clicker Factory" (auto3) in the upgrades list.
   const REBIRTH_BASE_INDEX = upgrades.findIndex((u) => u.id === "auto3");
@@ -562,6 +621,8 @@
         state.level = parsed.level || 1;
         state.xp = parsed.xp || 0;
         state.luck = parsed.luck || 0;
+        state.achievements = parsed.achievements || {};
+        state.milestones = parsed.milestones || {};
       }
     } catch (e) {
       console.warn("Could not load save", e);
@@ -636,6 +697,9 @@
   const luckTitleEl = document.getElementById("luckTitle");
   const luckDescEl = document.getElementById("luckDesc");
   const luckBtn = document.getElementById("luckBtn");
+  const comboEl = document.getElementById("combo");
+  const nextHintEl = document.getElementById("nextHint");
+  const toastContainerEl = document.getElementById("toastContainer");
 
   const SWITCH_REQUIRED_REBIRTHS = 10;
   const SWITCH_LOAD_MS = 5000;
@@ -782,7 +846,7 @@
       row.appendChild(btns);
       shopEl.appendChild(row);
 
-      u._els = { name, desc, btn, maxBtn };
+      u._els = { name, desc, btn, maxBtn, row };
     }
   }
 
@@ -817,19 +881,40 @@
     for (const u of upgrades) {
       const count = state.owned[u.id] || 0;
       const cost = costOf(u);
-      const { name, desc, btn, maxBtn } = u._els;
+      const { name, desc, btn, maxBtn, row } = u._els;
       name.textContent = u.name + (count > 0 ? " (x" + count + ")" : "");
       desc.textContent = u.desc;
       btn.textContent = "Buy: " + format(cost);
       btn.disabled = state.score < cost;
       maxBtn.textContent = "Max";
       maxBtn.disabled = state.score < cost;
+      row.classList.toggle("affordable", state.score >= cost);
     }
 
     levelTextEl.textContent = "Level " + state.level;
     xpTextEl.textContent = format(state.xp) + " / " + format(xpForNextLevel()) + " XP";
     levelFillEl.style.width =
       Math.min(100, (state.xp / xpForNextLevel()) * 100).toFixed(1) + "%";
+
+    // Combo display
+    if (combo > 1 && Date.now() - lastClickTime < COMBO_WINDOW_MS) {
+      comboEl.classList.remove("hidden");
+      comboEl.textContent = "COMBO x" + combo + " (+" + (combo * 2) + "%)";
+    } else {
+      comboEl.classList.add("hidden");
+    }
+
+    // Next upgrade hint
+    let next = null;
+    for (const u of upgrades) {
+      if (!(state.owned[u.id] > 0)) { next = u; break; }
+    }
+    if (next) {
+      const c = costOf(next);
+      nextHintEl.textContent = "Next: " + next.name + " (" + format(c) + ")";
+    } else {
+      nextHintEl.textContent = "All upgrades owned!";
+    }
 
     rbCountEl.textContent = state.rebirths;
     rbMultEl.textContent = "x" + rebirthMultiplier().toFixed(2) + " income";
@@ -863,6 +948,58 @@
   const GOLDEN_CHANCE = 0.01; // 1 in 100
   const GOLDEN_MULTIPLIER = 100;
 
+  // Achievements: unlocked once, grant a small permanent bonus via toast only.
+  const ACHIEVEMENTS = [
+    { id: "firstClick", name: "First Click!", test: () => state.totalClicks >= 1 },
+    { id: "clicks100", name: "100 Clicks!", test: () => state.totalClicks >= 100 },
+    { id: "clicks1000", name: "1,000 Clicks!", test: () => state.totalClicks >= 1000 },
+    { id: "score1k", name: "1K Score!", test: () => state.score >= 1000 },
+    { id: "score1m", name: "1M Score!", test: () => state.score >= 1e6 },
+    { id: "score1b", name: "1B Score!", test: () => state.score >= 1e9 },
+    { id: "level5", name: "Level 5!", test: () => state.level >= 5 },
+    { id: "level10", name: "Level 10!", test: () => state.level >= 10 },
+    { id: "firstRebirth", name: "First Rebirth!", test: () => state.rebirths >= 1 },
+    { id: "combo25", name: "25x Combo!", test: () => combo >= 25 },
+  ];
+
+  // Milestone rewards: score thresholds that grant a one-time bonus.
+  const MILESTONES = [
+    { threshold: 1000, reward: 500 },
+    { threshold: 10000, reward: 5000 },
+    { threshold: 100000, reward: 50000 },
+    { threshold: 1e6, reward: 500000 },
+    { threshold: 1e7, reward: 5e6 },
+    { threshold: 1e8, reward: 5e7 },
+    { threshold: 1e9, reward: 5e8 },
+  ];
+
+  function showToast(text) {
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = text;
+    toastContainerEl.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
+  function checkAchievements() {
+    for (const a of ACHIEVEMENTS) {
+      if (!state.achievements[a.id] && a.test()) {
+        state.achievements[a.id] = true;
+        showToast("\uD83C\uDFC6 " + a.name);
+      }
+    }
+  }
+
+  function checkMilestones() {
+    for (const m of MILESTONES) {
+      if (!state.milestones[m.threshold] && state.score >= m.threshold) {
+        state.milestones[m.threshold] = true;
+        state.score += m.reward;
+        showToast("\uD83C\uDF89 Milestone! +" + format(m.reward));
+      }
+    }
+  }
+
   function showFloat(amount, x, y, golden) {
     const el = document.createElement("div");
     el.className = golden ? "float-golden" : "float-normal";
@@ -881,7 +1018,17 @@
   }
 
   function doClick(x, y) {
-    let gain = perClick();
+    // Combo: rapid clicks build a multiplier.
+    const now = Date.now();
+    if (now - lastClickTime < COMBO_WINDOW_MS) {
+      combo = Math.min(COMBO_MAX, combo + 1);
+    } else {
+      combo = 1;
+    }
+    lastClickTime = now;
+    const comboMult = 1 + combo * 0.02; // +2% per combo step
+
+    let gain = perClick() * comboMult;
     const isGolden = Math.random() < GOLDEN_CHANCE;
     if (isGolden) {
       gain *= GOLDEN_MULTIPLIER;
@@ -893,6 +1040,8 @@
     state.totalClicks++;
     addXp(Math.max(1, Math.floor(gain / 10)));
     bumpScore();
+    checkMilestones();
+    checkAchievements();
     save();
     render();
   }
@@ -912,7 +1061,7 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset all progress?")) return;
-    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, history: [], level: 1, xp: 0, luck: 0 };
+    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, history: [], level: 1, xp: 0, luck: 0, achievements: {}, milestones: {} };
     save();
     render();
   });
@@ -1041,9 +1190,19 @@
     if (ps > 0) {
       state.score += ps;
       addXp(Math.max(1, Math.floor(ps / 10)));
+      checkMilestones();
+      checkAchievements();
       render();
     }
   }, 1000);
+
+  // Combo decay: hide the combo meter when the window lapses.
+  setInterval(() => {
+    if (combo > 0 && Date.now() - lastClickTime >= COMBO_WINDOW_MS) {
+      combo = 0;
+      comboEl.classList.add("hidden");
+    }
+  }, 200);
 
   // Periodic save
   setInterval(save, 5000);
