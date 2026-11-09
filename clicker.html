@@ -467,6 +467,90 @@
     font-weight: 700;
     cursor: pointer;
   }
+  .ascend-panel {
+    position: absolute;
+    top: 0;
+    left: calc(50% + 500px);
+    width: 240px;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(160deg, #1e1b4b, #0f172a);
+    border: 1px solid #6366f1;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(99,102,241,0.25);
+  }
+  .ascend-panel h2 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+    color: #a5b4fc;
+  }
+  .ascend-panel .as-shards {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #c7d2fe;
+    margin-bottom: 2px;
+  }
+  .ascend-panel .as-mult {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 10px;
+  }
+  .ascend-panel .as-req {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+  #ascendBtn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #ascendBtn:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+  .perk-list {
+    margin-top: 12px;
+    text-align: left;
+    border-top: 1px solid #4338ca;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .perk {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: #cbd5e1;
+  }
+  .perk .perk-name { flex: 1; }
+  .perk .perk-lvl { color: #a5b4fc; font-weight: 700; }
+  .perk button {
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: none;
+    background: #6366f1;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.65rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .perk button:disabled {
+    background: #334155;
+    color: #64748b;
+    cursor: not-allowed;
+  }
   .rebirth-panel h2 {
     margin: 0 0 8px;
     font-size: 1rem;
@@ -502,6 +586,13 @@
     background: #334155;
     color: #64748b;
     cursor: not-allowed;
+  }
+  @media (max-width: 1300px) {
+    .ascend-panel {
+      position: static;
+      width: min(420px, 92vw);
+      margin-top: 24px;
+    }
   }
   @media (max-width: 900px) {
     .rebirth-panel,
@@ -551,6 +642,15 @@
       <h2>Clicker Gacha</h2>
       <div class="sw-req" id="swReq"></div>
       <button id="switchBtn" disabled>Clicker Gacha</button>
+    </div>
+
+    <div class="ascend-panel">
+      <h2>Ascension</h2>
+      <div class="as-shards" id="asShards">0</div>
+      <div class="as-mult" id="asMult">x1.00 income</div>
+      <div class="as-req" id="asReq"></div>
+      <button id="ascendBtn" disabled>Ascend</button>
+      <div class="perk-list" id="perkList"></div>
     </div>
   </div>
   </div>
@@ -658,6 +758,9 @@
     achievements: {}, // id -> true
     milestones: {}, // threshold -> true
     bestPull: null, // { rarity, name, copies }
+    ascensions: 0,
+    shards: 0,
+    perks: {}, // perkId -> level
   };
 
   // Combo tracking (not persisted; resets on reload)
@@ -677,6 +780,58 @@
 
   function rebirthMultiplier() {
     return 1 + state.rebirths * 0.5;
+  }
+
+  // ---- Ascension (prestige layer above rebirth) ----
+  // Requires at least this many rebirths to ascend.
+  const ASCEND_REBIRTH_REQ = 5;
+
+  // Shards earned on ascend scale with rebirths and total upgrades owned.
+  function shardsOnAscend() {
+    if (state.rebirths < ASCEND_REBIRTH_REQ) return 0;
+    let owned = 0;
+    for (const u of upgrades) owned += state.owned[u.id] || 0;
+    return Math.floor(state.rebirths * 2 + Math.sqrt(owned) * 3);
+  }
+
+  function canAscend() {
+    return state.rebirths >= ASCEND_REBIRTH_REQ;
+  }
+
+  // Permanent perks bought with shards.
+  const PERKS = [
+    { id: "income", name: "Income Boost", desc: "+25% income/lvl", max: 50, baseCost: 1 },
+    { id: "click", name: "Click Power", desc: "+50% click/lvl", max: 50, baseCost: 1 },
+    { id: "golden", name: "Golden Luck", desc: "+0.5% golden chance/lvl", max: 20, baseCost: 3 },
+    { id: "xp", name: "Fast Learner", desc: "+20% XP/lvl", max: 25, baseCost: 2 },
+    { id: "start", name: "Head Start", desc: "Start with score/lvl", max: 30, baseCost: 2 },
+  ];
+
+  function perkLevel(id) {
+    return state.perks[id] || 0;
+  }
+
+  function perkCost(perk) {
+    return Math.floor(perk.baseCost * Math.pow(1.6, perkLevel(perk.id)));
+  }
+
+  function ascensionMultiplier() {
+    // Each ascension gives a big flat multiplier, plus income perk.
+    const base = Math.pow(2, state.ascensions);
+    const perk = 1 + perkLevel("income") * 0.25;
+    return base * perk;
+  }
+
+  function clickPerkMultiplier() {
+    return 1 + perkLevel("click") * 0.5;
+  }
+
+  function goldenChance() {
+    return GOLDEN_CHANCE + perkLevel("golden") * 0.005;
+  }
+
+  function xpPerkMultiplier() {
+    return 1 + perkLevel("xp") * 0.2;
   }
 
   // Level system: each level grants +10% income.
@@ -728,6 +883,9 @@
         state.achievements = parsed.achievements || {};
         state.milestones = parsed.milestones || {};
         state.bestPull = parsed.bestPull || null;
+        state.ascensions = parsed.ascensions || 0;
+        state.shards = parsed.shards || 0;
+        state.perks = parsed.perks || {};
       }
     } catch (e) {
       console.warn("Could not load save", e);
@@ -752,7 +910,7 @@
     for (const u of upgrades) {
       if (u.type === "click") v += u.value * (state.owned[u.id] || 0);
     }
-    return v * rebirthMultiplier() * levelMultiplier();
+    return v * rebirthMultiplier() * levelMultiplier() * ascensionMultiplier() * clickPerkMultiplier();
   }
 
   function perSecond() {
@@ -760,7 +918,7 @@
     for (const u of upgrades) {
       if (u.type === "auto") v += u.value * (state.owned[u.id] || 0);
     }
-    return v * rebirthMultiplier() * levelMultiplier();
+    return v * rebirthMultiplier() * levelMultiplier() * ascensionMultiplier();
   }
 
   function format(n) {
@@ -812,6 +970,11 @@
   const comboEl = document.getElementById("combo");
   const nextHintEl = document.getElementById("nextHint");
   const toastContainerEl = document.getElementById("toastContainer");
+  const asShardsEl = document.getElementById("asShards");
+  const asMultEl = document.getElementById("asMult");
+  const asReqEl = document.getElementById("asReq");
+  const ascendBtn = document.getElementById("ascendBtn");
+  const perkListEl = document.getElementById("perkList");
 
   const SWITCH_REQUIRED_REBIRTHS = 10;
   const SWITCH_LOAD_MS = 5000;
@@ -1089,7 +1252,72 @@
       switchBtn.disabled = true;
     }
 
+    renderAscension();
     renderGacha();
+  }
+
+  function renderAscension() {
+    asShardsEl.textContent = format(state.shards) + " shards";
+    asMultEl.textContent = "x" + format(ascensionMultiplier()) + " income";
+
+    if (canAscend()) {
+      const gain = shardsOnAscend();
+      asReqEl.textContent =
+        "Ascend now for +" + format(gain) + " shards (resets rebirths & upgrades)";
+      ascendBtn.disabled = false;
+      ascendBtn.textContent = "Ascend (+" + format(gain) + ")";
+    } else {
+      asReqEl.textContent =
+        "Reach " + ASCEND_REBIRTH_REQ + " rebirths to ascend (" +
+        state.rebirths + "/" + ASCEND_REBIRTH_REQ + ")";
+      ascendBtn.disabled = true;
+      ascendBtn.textContent = "Ascend";
+    }
+
+    // Perk shop
+    perkListEl.innerHTML = "";
+    for (const perk of PERKS) {
+      const lvl = perkLevel(perk.id);
+      const cost = perkCost(perk);
+      const maxed = lvl >= perk.max;
+
+      const row = document.createElement("div");
+      row.className = "perk";
+
+      const name = document.createElement("span");
+      name.className = "perk-name";
+      name.textContent = perk.name + " ";
+      const lvlSpan = document.createElement("span");
+      lvlSpan.className = "perk-lvl";
+      lvlSpan.textContent = "Lv" + lvl;
+      name.appendChild(lvlSpan);
+
+      const btn = document.createElement("button");
+      if (maxed) {
+        btn.textContent = "MAX";
+        btn.disabled = true;
+      } else {
+        btn.textContent = cost + " \u25C6";
+        btn.disabled = state.shards < cost;
+        btn.title = perk.desc;
+        btn.addEventListener("click", () => buyPerk(perk));
+      }
+
+      row.appendChild(name);
+      row.appendChild(btn);
+      perkListEl.appendChild(row);
+    }
+  }
+
+  function buyPerk(perk) {
+    const lvl = perkLevel(perk.id);
+    if (lvl >= perk.max) return;
+    const cost = perkCost(perk);
+    if (state.shards < cost) return;
+    state.shards -= cost;
+    state.perks[perk.id] = lvl + 1;
+    save();
+    render();
   }
 
   const GOLDEN_CHANCE = 0.01; // 1 in 100
@@ -1176,7 +1404,7 @@
     const comboMult = 1 + combo * 0.02; // +2% per combo step
 
     let gain = perClick() * comboMult;
-    const isGolden = Math.random() < GOLDEN_CHANCE;
+    const isGolden = Math.random() < goldenChance();
     if (isGolden) {
       gain *= GOLDEN_MULTIPLIER;
       clickBtn.classList.add("golden");
@@ -1185,7 +1413,7 @@
     showFloat(gain, x, y, isGolden);
     state.score += gain;
     state.totalClicks++;
-    addXp(Math.max(1, Math.floor(gain / 10)));
+    addXp(Math.max(1, Math.floor((gain / 10) * xpPerkMultiplier())));
     bumpScore();
     checkMilestones();
     checkAchievements();
@@ -1208,7 +1436,7 @@
 
   resetBtn.addEventListener("click", () => {
     if (!confirm("Reset all progress?")) return;
-    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, secretPity: 0, history: [], level: 1, xp: 0, luck: 0, achievements: {}, milestones: {}, bestPull: null };
+    state = { score: 0, totalClicks: 0, owned: {}, rebirths: 0, pity: 0, mythicPity: 0, secretPity: 0, history: [], level: 1, xp: 0, luck: 0, achievements: {}, milestones: {}, bestPull: null, ascensions: 0, shards: 0, perks: {} };
     save();
     render();
   });
@@ -1219,6 +1447,22 @@
     state.rebirths += 1;
     state.score = 0;
     state.owned = {};
+    save();
+    render();
+  });
+
+  ascendBtn.addEventListener("click", () => {
+    if (!canAscend()) return;
+    const gain = shardsOnAscend();
+    if (!confirm("Ascend for " + gain + " shards? This resets your score, upgrades, and rebirths (perks & shards are kept).")) return;
+    state.shards += gain;
+    state.ascensions += 1;
+    state.rebirths = 0;
+    state.score = 0;
+    state.owned = {};
+    // Head Start perk: begin with some score.
+    const hs = perkLevel("start");
+    if (hs > 0) state.score = Math.pow(10, hs);
     save();
     render();
   });
