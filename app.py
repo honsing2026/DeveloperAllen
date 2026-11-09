@@ -615,6 +615,7 @@ def main():
         st.session_state.page = "Home"
     if "xp" not in st.session_state:
         st.session_state.xp = saved.get("xp", 0)
+    st.session_state.xp = 2000  # TEMP: testing value, remove after testing
     if "xp_gained" not in st.session_state:
         st.session_state.xp_gained = False
     if "xp_animate" not in st.session_state:
