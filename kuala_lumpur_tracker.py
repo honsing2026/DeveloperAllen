@@ -118,21 +118,45 @@ def get_advancements():
     expenses = sum(-t["amount"] for t in txns if t["amount"] < 0)
     balance = st.session_state.get("balance", 0.0)
 
+    categories_used = {t["category"] for t in txns}
+    balance_display = to_display(balance)
+
     defs = [
+        # Getting started
         ("first_txn", "First Step", "👣", "Log your first transaction", len(txns) >= 1),
         ("first_income", "Allowance Day", "💵", "Record your first income", income > 0),
         ("first_expense", "Spender", "🛒", "Record your first expense", expenses > 0),
+        ("first_note", "Note Taker", "📝", "Add a note to a transaction", any(t.get("note") for t in txns)),
+        # Coins
         ("first_coin", "First Coin", "🪙", "Earn your first gold coin", coins >= 1),
         ("coins_5", "Coin Collector", "💰", "Earn 5 gold coins", coins >= 5),
         ("coins_10", "Coin Hoarder", "🏦", "Earn 10 gold coins", coins >= 10),
+        ("coins_25", "Coin Tycoon", "🤑", "Earn 25 gold coins", coins >= 25),
+        ("coins_50", "Coin Baron", "🏛️", "Earn 50 gold coins", coins >= 50),
+        # Trophies
         ("first_trophy", "Goal Getter", "🏆", "Reach your first savings goal", len(trophies) >= 1),
         ("trophies_3", "Trophy Hunter", "🎖️", "Collect 3 trophies", len(trophies) >= 3),
         ("trophies_5", "Champion", "👑", "Collect 5 trophies", len(trophies) >= 5),
-        ("balance_100", "Saver", "🌱", "Reach a balance of 100", balance >= 100),
-        ("balance_500", "Big Saver", "🌳", "Reach a balance of 500", balance >= 500),
-        ("balance_1000", "Money Master", "💎", "Reach a balance of 1000", balance >= 1000),
+        ("trophies_10", "Legend", "🌟", "Collect 10 trophies", len(trophies) >= 10),
+        # Balance milestones (in current display currency)
+        ("balance_100", "Saver", "🌱", "Reach a balance of 100", balance_display >= 100),
+        ("balance_500", "Big Saver", "🌳", "Reach a balance of 500", balance_display >= 500),
+        ("balance_1000", "Money Master", "💎", "Reach a balance of 1000", balance_display >= 1000),
+        ("balance_5000", "Wealthy", "🏰", "Reach a balance of 5000", balance_display >= 5000),
+        ("balance_10000", "Elon Mode", "🚀", "Reach a balance of 10,000", balance_display >= 10000),
+        # Transaction counts
         ("txns_10", "Consistent", "📈", "Log 10 transactions", len(txns) >= 10),
+        ("txns_25", "Habit Builder", "🗓️", "Log 25 transactions", len(txns) >= 25),
         ("txns_50", "Dedicated", "🔥", "Log 50 transactions", len(txns) >= 50),
+        ("txns_100", "Centurion", "💯", "Log 100 transactions", len(txns) >= 100),
+        # Category variety
+        ("cat_3", "Explorer", "🧭", "Use 3 different categories", len(categories_used) >= 3),
+        ("cat_5", "Well Rounded", "🎯", "Use 5 different categories", len(categories_used) >= 5),
+        ("cat_all", "Jack of All Trades", "🌈", "Use every category", len(categories_used) >= len(CATEGORIES)),
+        # Spending / saving behaviour
+        ("spent_100", "Big Spender", "💸", "Spend a total of 100", to_display(expenses) >= 100),
+        ("spent_500", "Shopping Spree", "🛍️", "Spend a total of 500", to_display(expenses) >= 500),
+        ("income_1000", "Earner", "💼", "Earn a total income of 1000", to_display(income) >= 1000),
     ]
     return [
         {"id": i, "label": l, "emoji": e, "desc": d, "unlocked": bool(c)}
