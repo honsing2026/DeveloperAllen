@@ -6,9 +6,17 @@ from datetime import date, datetime
 SAVE_FILE = "kl_tracker_data.json"
 
 # Supported currencies. Amounts are stored internally in RM (base currency).
+# Rates are approximate fixed values: 1 RM ≈ rate units of the target currency.
 CURRENCIES = {
-    "RM": {"symbol": "RM", "rate": 1.0},        # Malaysian Ringgit (base)
-    "USD": {"symbol": "$", "rate": 0.21},       # 1 RM ≈ 0.21 USD (fixed rate)
+    "RM":  {"symbol": "RM", "rate": 1.0},       # Malaysian Ringgit (base)
+    "USD": {"symbol": "$",  "rate": 0.21},      # US Dollar
+    "EUR": {"symbol": "€",  "rate": 0.20},      # Euro
+    "GBP": {"symbol": "£",  "rate": 0.17},      # British Pound
+    "JPY": {"symbol": "¥",  "rate": 32.0},      # Japanese Yen
+    "CNY": {"symbol": "¥",  "rate": 1.53},      # Chinese Yuan
+    "SGD": {"symbol": "S$", "rate": 0.28},      # Singapore Dollar
+    "AUD": {"symbol": "A$", "rate": 0.32},      # Australian Dollar
+    "INR": {"symbol": "₹",  "rate": 17.5},      # Indian Rupee
 }
 
 CATEGORIES = [
@@ -134,11 +142,10 @@ def main():
     # Sidebar stats
     with st.sidebar:
         st.header("💱 Currency")
-        currency = st.radio(
+        currency = st.selectbox(
             "Display currency",
             list(CURRENCIES.keys()),
             index=list(CURRENCIES.keys()).index(st.session_state.currency),
-            horizontal=True,
         )
         if currency != st.session_state.currency:
             st.session_state.currency = currency
