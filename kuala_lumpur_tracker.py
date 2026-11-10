@@ -50,7 +50,8 @@ def save_data():
         "currency": st.session_state.get("currency", "RM"),
         "goal_celebrated": st.session_state.get("goal_celebrated", False),
         "coins": st.session_state.get("coins", 0),
-        "spent_since_coin": st.session_state.get("spent_since_coin", 0.0),
+        "earned_since_coin": st.session_state.get("earned_since_coin", 0.0),
+        "trophies": st.session_state.get("trophies", []),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -82,16 +83,17 @@ def add_transaction(kind, amount, category, note):
     if kind == "Income":
         st.session_state.balance += amount
         signed = amount
+        # Every 100 (in the current currency) earned awards one gold coin
+        rate = CURRENCIES.get(st.session_state.get("currency", "RM"), CURRENCIES["RM"])["rate"]
+        earned_display = amount * rate
+        st.session_state.earned_since_coin += earned_display
+        while st.session_state.earned_since_coin >= 100:
+            st.session_state.earned_since_coin -= 100
+            st.session_state.coins += 1
+            st.session_state.coin_animate = True
     else:
         st.session_state.balance -= amount
         signed = -amount
-        # Every 100 (in the current currency) spent removes one coin
-        rate = CURRENCIES.get(st.session_state.get("currency", "RM"), CURRENCIES["RM"])["rate"]
-        spent_display = amount * rate
-        st.session_state.spent_since_coin += spent_display
-        while st.session_state.spent_since_coin >= 100 and st.session_state.coins > 0:
-            st.session_state.spent_since_coin -= 100
-            st.session_state.coins -= 1
     st.session_state.transactions.append(
         {
             "id": datetime.now().isoformat(),
@@ -125,8 +127,10 @@ def main():
         st.session_state.goal_celebrated = saved.get("goal_celebrated", False)
     if "coins" not in st.session_state:
         st.session_state.coins = saved.get("coins", 0)
-    if "spent_since_coin" not in st.session_state:
-        st.session_state.spent_since_coin = saved.get("spent_since_coin", 0.0)
+    if "earned_since_coin" not in st.session_state:
+        st.session_state.earned_since_coin = saved.get("earned_since_coin", 0.0)
+    if "trophies" not in st.session_state:
+        st.session_state.trophies = saved.get("trophies", [])
     if "coin_animate" not in st.session_state:
         st.session_state.coin_animate = False
 
@@ -180,8 +184,13 @@ def main():
                 st.success("🎉 Savings goal reached!")
                 if not st.session_state.goal_celebrated:
                     st.session_state.goal_celebrated = True
-                    st.session_state.coins += 1
-                    st.session_state.coin_animate = True
+                    st.session_state.trophies.append(
+                        {
+                            "goal": st.session_state.savings_goal,
+                            "currency": st.session_state.currency,
+                            "date": str(date.today()),
+                        }
+                    )
                     save_data()
             else:
                 # Reset the celebration flag if the balance drops below the goal
@@ -197,21 +206,22 @@ def main():
             st.session_state.savings_goal = 0.0
             st.session_state.goal_celebrated = False
             st.session_state.coins = 0
-            st.session_state.spent_since_coin = 0.0
+            st.session_state.earned_since_coin = 0.0
+            st.session_state.trophies = []
             save_data()
             st.rerun()
 
     # Balance summary (rendered after the sidebar so coin updates show immediately)
     balance = st.session_state.balance
 
-    # Coin row: one coin per savings goal reached
+    # Coin row: one gold coin per 100 earned
     coin_html = "".join(
         f"<span class='coin{' coin-flip' if st.session_state.coin_animate else ''}' "
         f"style='animation-delay:{i * 0.08:.2f}s;'>🪙</span>"
         for i in range(st.session_state.coins)
     )
     if not coin_html:
-        coin_html = "<span class='coin-empty'>No coins yet — reach a savings goal to earn one!</span>"
+        coin_html = "<span class='coin-empty'>No coins yet — earn 100 to get a gold coin!</span>"
 
     st.markdown(
         f"""
@@ -335,6 +345,49 @@ def main():
                 🎉 Savings Goal Reached! 🎉
                 <div class="sub">You hit {format_money(st.session_state.savings_goal)} — amazing work!</div>
             </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # Trophy room: one trophy per savings goal reached
+    st.subheader("🏆 Trophy Room")
+    if not st.session_state.trophies:
+        st.info("No trophies yet — reach a savings goal to earn one!")
+    else:
+        trophy_html = "".join(
+            f"<div class='trophy'>"
+            f"<div class='trophy-icon'>🏆</div>"
+            f"<div class='trophy-goal'>{t['currency']} {t['goal']:,.2f}</div>"
+            f"<div class='trophy-date'>{t['date']}</div>"
+            f"</div>"
+            for t in st.session_state.trophies
+        )
+        st.markdown(
+            f"""
+            <style>
+            .trophy-shelf {{
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                padding: 16px;
+                border-radius: 12px;
+                background: linear-gradient(180deg, #fff8e1, #ffe0b2);
+                border: 2px solid #ffb300;
+            }}
+            .trophy {{
+                text-align: center;
+                padding: 12px 16px;
+                border-radius: 10px;
+                background: white;
+                border: 2px solid #ffd740;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+                min-width: 100px;
+            }}
+            .trophy-icon {{ font-size: 40px; line-height: 1; }}
+            .trophy-goal {{ font-weight: bold; color: #b8860b; margin-top: 4px; }}
+            .trophy-date {{ font-size: 12px; color: #8d6e63; }}
+            </style>
+            <div class="trophy-shelf">{trophy_html}</div>
             """,
             unsafe_allow_html=True,
         )
