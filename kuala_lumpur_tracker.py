@@ -260,6 +260,12 @@ def main():
             font-size: 13px;
             color: #8d6e63;
         }}
+        .coin-note {{
+            text-align: center;
+            font-size: 12px;
+            color: #8d6e63;
+            margin: -6px 0 12px 0;
+        }}
         @keyframes coin-flip {{
             0%   {{ transform: rotateY(0deg)   scale(1); }}
             50%  {{ transform: rotateY(180deg) scale(1.3); }}
@@ -270,6 +276,7 @@ def main():
         }}
         </style>
         <div class="coin-row">{coin_html}</div>
+        <div class="coin-note">Each coin = 100 earned</div>
         <div class="balance-card">
             <div class="balance-label">Current Balance</div>
             <div class="balance-value">{format_money(balance)}</div>
