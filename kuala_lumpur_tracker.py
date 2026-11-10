@@ -107,6 +107,159 @@ def add_transaction(kind, amount, category, note):
     )
     save_data()
 
+# Milestone badges: (id, label, emoji, description, condition)
+def get_advancements():
+    """Return a list of advancement dicts with unlocked status."""
+    coins = st.session_state.get("coins", 0)
+    trophies = st.session_state.get("trophies", [])
+    txns = st.session_state.get("transactions", [])
+    income = sum(t["amount"] for t in txns if t["amount"] > 0)
+    expenses = sum(-t["amount"] for t in txns if t["amount"] < 0)
+    balance = st.session_state.get("balance", 0.0)
+
+    defs = [
+        ("first_txn", "First Step", "👣", "Log your first transaction", len(txns) >= 1),
+        ("first_income", "Allowance Day", "💵", "Record your first income", income > 0),
+        ("first_expense", "Spender", "🛒", "Record your first expense", expenses > 0),
+        ("first_coin", "First Coin", "🪙", "Earn your first gold coin", coins >= 1),
+        ("coins_5", "Coin Collector", "💰", "Earn 5 gold coins", coins >= 5),
+        ("coins_10", "Coin Hoarder", "🏦", "Earn 10 gold coins", coins >= 10),
+        ("first_trophy", "Goal Getter", "🏆", "Reach your first savings goal", len(trophies) >= 1),
+        ("trophies_3", "Trophy Hunter", "🎖️", "Collect 3 trophies", len(trophies) >= 3),
+        ("trophies_5", "Champion", "👑", "Collect 5 trophies", len(trophies) >= 5),
+        ("balance_100", "Saver", "🌱", "Reach a balance of 100", balance >= 100),
+        ("balance_500", "Big Saver", "🌳", "Reach a balance of 500", balance >= 500),
+        ("balance_1000", "Money Master", "💎", "Reach a balance of 1000", balance >= 1000),
+        ("txns_10", "Consistent", "📈", "Log 10 transactions", len(txns) >= 10),
+        ("txns_50", "Dedicated", "🔥", "Log 50 transactions", len(txns) >= 50),
+    ]
+    return [
+        {"id": i, "label": l, "emoji": e, "desc": d, "unlocked": bool(c)}
+        for (i, l, e, d, c) in defs
+    ]
+
+
+def advancements_page():
+    st.title("🏅 Advancements")
+    st.caption("All your achievements in one place — coins, trophies, and milestone badges.")
+
+    advancements = get_advancements()
+    unlocked = [a for a in advancements if a["unlocked"]]
+    total = len(advancements)
+    pct = len(unlocked) / total if total else 0.0
+
+    st.progress(pct, text=f"{len(unlocked)} / {total} advancements unlocked")
+
+    # Summary metrics
+    c1, c2, c3 = st.columns(3)
+    c1.metric("🪙 Coins", st.session_state.get("coins", 0))
+    c2.metric("🏆 Trophies", len(st.session_state.get("trophies", [])))
+    c3.metric("🏅 Badges", f"{len(unlocked)}/{total}")
+
+    st.divider()
+
+    # Badge grid
+    st.subheader("Milestone Badges")
+    badge_html = ""
+    for a in advancements:
+        if a["unlocked"]:
+            style = (
+                "background: linear-gradient(135deg, #fff8e1, #ffe0b2);"
+                "border: 2px solid #ffb300;"
+                "box-shadow: 0 3px 10px rgba(255,179,0,0.4);"
+            )
+            icon_style = "filter: none;"
+            label_color = "#b8860b"
+        else:
+            style = (
+                "background: #f5f5f5;"
+                "border: 2px dashed #bdbdbd;"
+                "opacity: 0.6;"
+            )
+            icon_style = "filter: grayscale(1);"
+            label_color = "#9e9e9e"
+        badge_html += (
+            f"<div class='badge' style='{style}'>"
+            f"<div class='badge-icon' style='{icon_style}'>{a['emoji']}</div>"
+            f"<div class='badge-label' style='color:{label_color};'>{a['label']}</div>"
+            f"<div class='badge-desc'>{a['desc']}</div>"
+            f"</div>"
+        )
+    st.markdown(
+        f"""
+        <style>
+        .badge-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }}
+        .badge {{
+            text-align: center;
+            padding: 14px 10px;
+            border-radius: 12px;
+        }}
+        .badge-icon {{ font-size: 36px; line-height: 1; }}
+        .badge-label {{ font-weight: bold; margin-top: 6px; font-size: 14px; }}
+        .badge-desc {{ font-size: 11px; color: #757575; margin-top: 2px; }}
+        </style>
+        <div class="badge-grid">{badge_html}</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.divider()
+
+    # Trophy room (reused view)
+    st.subheader("🏆 Trophy Room")
+    trophies = st.session_state.get("trophies", [])
+    if not trophies:
+        st.info("No trophies yet — reach a savings goal to earn one!")
+    else:
+        trophy_html = "".join(
+            f"<div class='trophy'>"
+            f"<div class='trophy-icon'>🏆</div>"
+            f"<div class='trophy-goal'>{t['currency']} {t['goal']:,.2f}</div>"
+            f"<div class='trophy-date'>{t['date']}</div>"
+            f"</div>"
+            for t in trophies
+        )
+        st.markdown(
+            f"""
+            <style>
+            .trophy-shelf {{
+                display: flex;
+                flex-wrap: nowrap;
+                gap: 12px;
+                padding: 16px;
+                border-radius: 12px;
+                background: linear-gradient(180deg, #fff8e1, #ffe0b2);
+                border: 2px solid #ffb300;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
+            }}
+            .trophy {{
+                flex: 0 0 auto;
+                text-align: center;
+                padding: 12px 16px;
+                border-radius: 10px;
+                background: white;
+                border: 2px solid #ffd740;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+                min-width: 100px;
+            }}
+            .trophy-icon {{ font-size: 40px; line-height: 1; }}
+            .trophy-goal {{ font-weight: bold; color: #b8860b; margin-top: 4px; }}
+            .trophy-date {{ font-size: 12px; color: #8d6e63; }}
+            </style>
+            <div class="trophy-shelf">{trophy_html}</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
 def main():
     st.set_page_config(
         page_title="KL Pocket Money Tracker",
@@ -136,6 +289,8 @@ def main():
         st.session_state.coin_animate = False
     if "announcement_dismissed" not in st.session_state:
         st.session_state.announcement_dismissed = saved.get("announcement_dismissed", False)
+    if "page" not in st.session_state:
+        st.session_state.page = "Tracker"
 
     # Auto-save on every rerun so progress survives restarts and tab closes
     save_data()
@@ -186,6 +341,17 @@ def main():
 
     # Sidebar stats
     with st.sidebar:
+        st.header("🧭 Navigation")
+        page = st.radio(
+            "Go to",
+            ["Tracker", "Advancements"],
+            index=0 if st.session_state.page == "Tracker" else 1,
+        )
+        if page != st.session_state.page:
+            st.session_state.page = page
+            st.rerun()
+
+        st.divider()
         st.header("💱 Currency")
         currency = st.selectbox(
             "Display currency",
@@ -254,6 +420,11 @@ def main():
             st.session_state.announcement_dismissed = False
             save_data()
             st.rerun()
+
+    # Advancements page
+    if st.session_state.page == "Advancements":
+        advancements_page()
+        return
 
     # Balance summary (rendered after the sidebar so coin updates show immediately)
     balance = st.session_state.balance
