@@ -52,6 +52,7 @@ def save_data():
         "coins": st.session_state.get("coins", 0),
         "earned_since_coin": st.session_state.get("earned_since_coin", 0.0),
         "trophies": st.session_state.get("trophies", []),
+        "announcement_dismissed": st.session_state.get("announcement_dismissed", False),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -133,6 +134,8 @@ def main():
         st.session_state.trophies = saved.get("trophies", [])
     if "coin_animate" not in st.session_state:
         st.session_state.coin_animate = False
+    if "announcement_dismissed" not in st.session_state:
+        st.session_state.announcement_dismissed = saved.get("announcement_dismissed", False)
 
     # Auto-save on every rerun so progress survives restarts and tab closes
     save_data()
@@ -140,6 +143,46 @@ def main():
     st.title("💰 Kuala Lumpur Pocket Money & Allowance Tracker")
     st.caption("Track your daily allowance and spending. Switch between RM and USD in the sidebar.")
     st.caption("🎯 Savings Goal: set a target in the sidebar and watch your balance grow toward it.")
+
+    # Announcement banner (dismissible, persisted)
+    if not st.session_state.announcement_dismissed:
+        st.markdown(
+            """
+            <style>
+            @keyframes announce-slide {
+                0%   { transform: translateY(-20px); opacity: 0; }
+                100% { transform: translateY(0);     opacity: 1; }
+            }
+            .announcement {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 14px 18px;
+                margin-bottom: 16px;
+                border-radius: 12px;
+                background: linear-gradient(135deg, #fff3cd, #ffe0b2);
+                border-left: 6px solid #ffb300;
+                color: #5d4037;
+                font-size: 15px;
+                animation: announce-slide 0.5s ease-out;
+            }
+            .announcement .icon { font-size: 24px; }
+            .announcement .title { font-weight: bold; }
+            </style>
+            <div class="announcement">
+                <span class="icon">📢</span>
+                <div>
+                    <div class="title">Welcome to your Pocket Money Tracker!</div>
+                    <div>Log your allowance and spending, set a savings goal, and earn gold coins and trophies along the way. 🪙🏆</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Dismiss announcement"):
+            st.session_state.announcement_dismissed = True
+            save_data()
+            st.rerun()
 
     # Sidebar stats
     with st.sidebar:
@@ -208,6 +251,7 @@ def main():
             st.session_state.coins = 0
             st.session_state.earned_since_coin = 0.0
             st.session_state.trophies = []
+            st.session_state.announcement_dismissed = False
             save_data()
             st.rerun()
 
