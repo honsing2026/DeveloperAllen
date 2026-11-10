@@ -945,32 +945,6 @@ def main():
             unsafe_allow_html=True,
         )
 
-    # Budget summary chart: spending by category
-    st.subheader("📊 Budget Summary")
-    if not st.session_state.transactions:
-        st.info("Add some transactions to see your budget breakdown.")
-    else:
-        # Aggregate spending per category (in current display currency)
-        spend_by_cat = {}
-        for t in st.session_state.transactions:
-            if t["amount"] < 0:
-                cat = t["category"]
-                spend_by_cat[cat] = spend_by_cat.get(cat, 0.0) + to_display(-t["amount"])
-
-        total_income = sum(t["amount"] for t in st.session_state.transactions if t["amount"] > 0)
-        total_spent = sum(-t["amount"] for t in st.session_state.transactions if t["amount"] < 0)
-
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Income", format_money(total_income))
-        m2.metric("Spent", format_money(total_spent))
-        m3.metric("Balance", format_money(st.session_state.balance))
-
-        if spend_by_cat:
-            st.caption(f"Spending by category ({st.session_state.currency})")
-            st.bar_chart(spend_by_cat)
-        else:
-            st.caption("No expenses recorded yet — your spending chart will appear here.")
-
     # Add transaction form
     st.subheader("➕ Add Transaction")
     with st.form("add_transaction", clear_on_submit=True):
