@@ -425,6 +425,17 @@ def main():
             save_data()
             st.rerun()
 
+    # Top navigation bar
+    nav_tracker, nav_adv, _ = st.columns([1, 1, 4])
+    with nav_tracker:
+        if st.button("💰 Tracker", use_container_width=True):
+            st.session_state.page = "Tracker"
+            st.rerun()
+    with nav_adv:
+        if st.button("🏅 Advancements", use_container_width=True):
+            st.session_state.page = "Advancements"
+            st.rerun()
+
     # Advancements page
     if st.session_state.page == "Advancements":
         advancements_page()
