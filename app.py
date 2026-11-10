@@ -288,6 +288,7 @@ def home_page():
     
     # Task list (persisted across reruns)
     if "tasks" not in st.session_state:
+        saved = load_save()
         st.session_state.tasks = saved.get("tasks", ["Task 1", "Task 2", "Task 3", "Task 4"])
     create_task_list(st.session_state.tasks)
 
