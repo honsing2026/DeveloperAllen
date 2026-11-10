@@ -65,6 +65,38 @@ SHOP_ITEMS = [
     {"name": "Smartphone",            "emoji": "📱", "price": 1200.00, "category": "Shopping"},
     {"name": "Laptop",                "emoji": "💻", "price": 3000.00, "category": "Shopping"},
     {"name": "Bicycle",               "emoji": "🚲", "price": 800.00, "category": "Shopping"},
+    # Game currencies & digital items
+    {"name": "Roblox Robux (400)",    "emoji": "🟥", "price": 20.00,  "category": "Games"},
+    {"name": "Roblox Robux (800)",    "emoji": "🟥", "price": 40.00,  "category": "Games"},
+    {"name": "Minecraft Minecoins",   "emoji": "⛏️", "price": 15.00,  "category": "Games"},
+    {"name": "Fortnite V-Bucks",      "emoji": "🪂", "price": 35.00,  "category": "Games"},
+    {"name": "Roblox Gift Card",      "emoji": "🎁", "price": 50.00,  "category": "Games"},
+    {"name": "Steam Gift Card",       "emoji": "🎮", "price": 50.00,  "category": "Games"},
+    {"name": "Nintendo eShop Card",   "emoji": "🍄", "price": 60.00,  "category": "Games"},
+    {"name": "Among Us",              "emoji": "👾", "price": 12.00,  "category": "Games"},
+    {"name": "Minecraft (PC)",        "emoji": "🧱", "price": 120.00, "category": "Games"},
+    # Toys & fun
+    {"name": "Lego Set (small)",      "emoji": "🧩", "price": 45.00,  "category": "Toys"},
+    {"name": "Lego Set (large)",      "emoji": "🧱", "price": 250.00, "category": "Toys"},
+    {"name": "Stuffed Bear",          "emoji": "🧸", "price": 40.00,  "category": "Toys"},
+    {"name": "Stuffed Bunny",         "emoji": "🐰", "price": 35.00,  "category": "Toys"},
+    {"name": "Stuffed Unicorn",       "emoji": "🦄", "price": 55.00,  "category": "Toys"},
+    {"name": "Stuffed Dinosaur",      "emoji": "🦖", "price": 50.00,  "category": "Toys"},
+    {"name": "Hot Wheels Car",        "emoji": "🏎️", "price": 15.00,  "category": "Toys"},
+    {"name": "Rubik's Cube",          "emoji": "🧊", "price": 20.00,  "category": "Toys"},
+    {"name": "Yo-Yo",                 "emoji": "🪀", "price": 10.00,  "category": "Toys"},
+    {"name": "Fidget Spinner",        "emoji": "🌀", "price": 8.00,   "category": "Toys"},
+    {"name": "Squishmallow",          "emoji": "🫧", "price": 60.00,  "category": "Toys"},
+    {"name": "Pokémon Cards (pack)",  "emoji": "🃏", "price": 12.00,  "category": "Toys"},
+    {"name": "Nerf Blaster",          "emoji": "🔫", "price": 90.00,  "category": "Toys"},
+    {"name": "Board Game",            "emoji": "🎲", "price": 70.00,  "category": "Toys"},
+    {"name": "Scooter",               "emoji": "🛴", "price": 300.00, "category": "Toys"},
+    # Treats
+    {"name": "Ice Cream",             "emoji": "🍦", "price": 5.00,   "category": "Food"},
+    {"name": "Chocolate Bar",         "emoji": "🍫", "price": 4.00,   "category": "Food"},
+    {"name": "Gummy Bears",           "emoji": "🐻", "price": 6.00,   "category": "Food"},
+    {"name": "Donut",                 "emoji": "🍩", "price": 4.50,   "category": "Food"},
+    {"name": "Cupcake",               "emoji": "🧁", "price": 7.00,   "category": "Food"},
 ]
 
 def load_data():
