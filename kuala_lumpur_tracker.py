@@ -243,7 +243,8 @@ def main():
             display: inline-block;
             font-size: 28px;
             line-height: 1;
-            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+            filter: sepia(1) saturate(6) hue-rotate(-10deg) brightness(1.1)
+                    drop-shadow(0 2px 3px rgba(0,0,0,0.25));
         }}
         .coin-empty {{
             font-size: 13px;
