@@ -976,6 +976,22 @@ def main():
     if not st.session_state.transactions:
         st.info("No transactions yet. Add your first allowance or expense above!")
     else:
+        # Balance over time chart: each transaction is a point on the line
+        st.caption(f"Balance over time ({st.session_state.currency})")
+        running = 0.0
+        points = {}
+        for t in st.session_state.transactions:
+            running += t["amount"]
+            label = f"{t['date']} {t['category']}"
+            # Ensure unique x-axis labels if multiple txns share date+category
+            base = label
+            n = 2
+            while label in points:
+                label = f"{base} ({n})"
+                n += 1
+            points[label] = to_display(running)
+        st.line_chart(points)
+
         # Filter by category
         filter_cat = st.selectbox("Filter by category", ["All"] + CATEGORIES)
         rows = st.session_state.transactions
