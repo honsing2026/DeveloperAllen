@@ -500,7 +500,7 @@ def advancements_page():
 
 def main():
     st.set_page_config(
-        page_title="KL Pocket Money Tracker",
+        page_title="Pocket Money And Allowance Tracker",
         page_icon="💰",
         layout="centered",
     )
@@ -535,7 +535,7 @@ def main():
     # Auto-save on every rerun so progress survives restarts and tab closes
     save_data()
 
-    st.title("💰 Kuala Lumpur Pocket Money & Allowance Tracker")
+    st.title("💰 Pocket Money And Allowance Tracker")
     st.caption("Track your daily allowance and spending. Switch between RM and USD in the sidebar.")
     st.caption("🎯 Savings Goal: set a target in the sidebar and watch your balance grow toward it.")
 
