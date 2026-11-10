@@ -1,5 +1,6 @@
 .env
 secret_key.txt
+save_data.json
 
 .venv/
 __pycache__/
