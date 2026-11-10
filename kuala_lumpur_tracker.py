@@ -49,6 +49,8 @@ def save_data():
         "savings_goal": st.session_state.get("savings_goal", 0.0),
         "currency": st.session_state.get("currency", "RM"),
         "goal_celebrated": st.session_state.get("goal_celebrated", False),
+        "coins": st.session_state.get("coins", 0),
+        "spent_since_coin": st.session_state.get("spent_since_coin", 0.0),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -83,6 +85,13 @@ def add_transaction(kind, amount, category, note):
     else:
         st.session_state.balance -= amount
         signed = -amount
+        # Every 100 (in the current currency) spent removes one coin
+        rate = CURRENCIES.get(st.session_state.get("currency", "RM"), CURRENCIES["RM"])["rate"]
+        spent_display = amount * rate
+        st.session_state.spent_since_coin += spent_display
+        while st.session_state.spent_since_coin >= 100 and st.session_state.coins > 0:
+            st.session_state.spent_since_coin -= 100
+            st.session_state.coins -= 1
     st.session_state.transactions.append(
         {
             "id": datetime.now().isoformat(),
@@ -114,6 +123,12 @@ def main():
         st.session_state.currency = saved.get("currency", "RM")
     if "goal_celebrated" not in st.session_state:
         st.session_state.goal_celebrated = saved.get("goal_celebrated", False)
+    if "coins" not in st.session_state:
+        st.session_state.coins = saved.get("coins", 0)
+    if "spent_since_coin" not in st.session_state:
+        st.session_state.spent_since_coin = saved.get("spent_since_coin", 0.0)
+    if "coin_animate" not in st.session_state:
+        st.session_state.coin_animate = False
 
     # Auto-save on every rerun so progress survives restarts and tab closes
     save_data()
@@ -124,6 +139,16 @@ def main():
 
     # Balance summary
     balance = st.session_state.balance
+
+    # Coin row: one coin per savings goal reached
+    coin_html = "".join(
+        f"<span class='coin{' coin-flip' if st.session_state.coin_animate else ''}' "
+        f"style='animation-delay:{i * 0.08:.2f}s;'>🪙</span>"
+        for i in range(st.session_state.coins)
+    )
+    if not coin_html:
+        coin_html = "<span class='coin-empty'>No coins yet — reach a savings goal to earn one!</span>"
+
     st.markdown(
         f"""
         <style>
@@ -137,7 +162,39 @@ def main():
         }}
         .balance-label {{ font-size: 14px; opacity: 0.9; }}
         .balance-value {{ font-size: 40px; font-weight: bold; }}
+        .coin-row {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            background: #fff8e1;
+            border: 2px dashed #ffb300;
+            min-height: 48px;
+        }}
+        .coin {{
+            display: inline-block;
+            font-size: 28px;
+            line-height: 1;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+        }}
+        .coin-empty {{
+            font-size: 13px;
+            color: #8d6e63;
+        }}
+        @keyframes coin-flip {{
+            0%   {{ transform: rotateY(0deg)   scale(1); }}
+            50%  {{ transform: rotateY(180deg) scale(1.3); }}
+            100% {{ transform: rotateY(360deg) scale(1); }}
+        }}
+        .coin-flip {{
+            animation: coin-flip 0.9s ease-in-out;
+        }}
         </style>
+        <div class="coin-row">{coin_html}</div>
         <div class="balance-card">
             <div class="balance-label">Current Balance</div>
             <div class="balance-value">{format_money(balance)}</div>
@@ -145,6 +202,7 @@ def main():
         """,
         unsafe_allow_html=True,
     )
+    st.session_state.coin_animate = False
 
     # Sidebar stats
     with st.sidebar:
@@ -189,6 +247,8 @@ def main():
                 st.success("🎉 Savings goal reached!")
                 if not st.session_state.goal_celebrated:
                     st.session_state.goal_celebrated = True
+                    st.session_state.coins += 1
+                    st.session_state.coin_animate = True
                     save_data()
             else:
                 # Reset the celebration flag if the balance drops below the goal
@@ -203,6 +263,8 @@ def main():
             st.session_state.transactions = []
             st.session_state.savings_goal = 0.0
             st.session_state.goal_celebrated = False
+            st.session_state.coins = 0
+            st.session_state.spent_since_coin = 0.0
             save_data()
             st.rerun()
 
