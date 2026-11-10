@@ -137,7 +137,71 @@ def main():
     st.caption("Track your daily allowance and spending. Switch between RM and USD in the sidebar.")
     st.caption("🎯 Savings Goal: set a target in the sidebar and watch your balance grow toward it.")
 
-    # Balance summary
+    # Sidebar stats
+    with st.sidebar:
+        st.header("💱 Currency")
+        currency = st.selectbox(
+            "Display currency",
+            list(CURRENCIES.keys()),
+            index=list(CURRENCIES.keys()).index(st.session_state.currency),
+        )
+        if currency != st.session_state.currency:
+            st.session_state.currency = currency
+            save_data()
+            st.rerun()
+
+        st.divider()
+        st.header("📊 Summary")
+        income = sum(t["amount"] for t in st.session_state.transactions if t["amount"] > 0)
+        expenses = sum(-t["amount"] for t in st.session_state.transactions if t["amount"] < 0)
+        st.metric("Total Income", format_money(income))
+        st.metric("Total Spent", format_money(expenses))
+        st.metric("Transactions", len(st.session_state.transactions))
+        st.divider()
+        st.subheader("🎯 Savings Goal")
+        goal_display = st.number_input(
+            f"Target ({st.session_state.currency})",
+            min_value=0.0,
+            step=10.0,
+            format="%.2f",
+            value=float(to_display(st.session_state.savings_goal)),
+        )
+        goal_rm = from_display(goal_display)
+        if abs(goal_rm - st.session_state.savings_goal) > 0.005:
+            st.session_state.savings_goal = goal_rm
+            save_data()
+        if st.session_state.savings_goal > 0:
+            pct = min(max(st.session_state.balance / st.session_state.savings_goal, 0.0), 1.0)
+            st.progress(
+                pct,
+                text=f"{format_money(st.session_state.balance)} / {format_money(st.session_state.savings_goal)}",
+            )
+            if st.session_state.balance >= st.session_state.savings_goal:
+                st.success("🎉 Savings goal reached!")
+                if not st.session_state.goal_celebrated:
+                    st.session_state.goal_celebrated = True
+                    st.session_state.coins += 1
+                    st.session_state.coin_animate = True
+                    save_data()
+            else:
+                # Reset the celebration flag if the balance drops below the goal
+                if st.session_state.goal_celebrated:
+                    st.session_state.goal_celebrated = False
+                    save_data()
+        else:
+            st.caption("Set a target above to track your progress.")
+        st.divider()
+        if st.button("🗑️ Reset all data", use_container_width=True):
+            st.session_state.balance = 0.0
+            st.session_state.transactions = []
+            st.session_state.savings_goal = 0.0
+            st.session_state.goal_celebrated = False
+            st.session_state.coins = 0
+            st.session_state.spent_since_coin = 0.0
+            save_data()
+            st.rerun()
+
+    # Balance summary (rendered after the sidebar so coin updates show immediately)
     balance = st.session_state.balance
 
     # Coin row: one coin per savings goal reached
@@ -203,70 +267,6 @@ def main():
         unsafe_allow_html=True,
     )
     st.session_state.coin_animate = False
-
-    # Sidebar stats
-    with st.sidebar:
-        st.header("💱 Currency")
-        currency = st.selectbox(
-            "Display currency",
-            list(CURRENCIES.keys()),
-            index=list(CURRENCIES.keys()).index(st.session_state.currency),
-        )
-        if currency != st.session_state.currency:
-            st.session_state.currency = currency
-            save_data()
-            st.rerun()
-
-        st.divider()
-        st.header("📊 Summary")
-        income = sum(t["amount"] for t in st.session_state.transactions if t["amount"] > 0)
-        expenses = sum(-t["amount"] for t in st.session_state.transactions if t["amount"] < 0)
-        st.metric("Total Income", format_money(income))
-        st.metric("Total Spent", format_money(expenses))
-        st.metric("Transactions", len(st.session_state.transactions))
-        st.divider()
-        st.subheader("🎯 Savings Goal")
-        goal_display = st.number_input(
-            f"Target ({st.session_state.currency})",
-            min_value=0.0,
-            step=10.0,
-            format="%.2f",
-            value=float(to_display(st.session_state.savings_goal)),
-        )
-        goal_rm = from_display(goal_display)
-        if abs(goal_rm - st.session_state.savings_goal) > 0.005:
-            st.session_state.savings_goal = goal_rm
-            save_data()
-        if st.session_state.savings_goal > 0:
-            pct = min(max(st.session_state.balance / st.session_state.savings_goal, 0.0), 1.0)
-            st.progress(
-                pct,
-                text=f"{format_money(st.session_state.balance)} / {format_money(st.session_state.savings_goal)}",
-            )
-            if st.session_state.balance >= st.session_state.savings_goal:
-                st.success("🎉 Savings goal reached!")
-                if not st.session_state.goal_celebrated:
-                    st.session_state.goal_celebrated = True
-                    st.session_state.coins += 1
-                    st.session_state.coin_animate = True
-                    save_data()
-            else:
-                # Reset the celebration flag if the balance drops below the goal
-                if st.session_state.goal_celebrated:
-                    st.session_state.goal_celebrated = False
-                    save_data()
-        else:
-            st.caption("Set a target above to track your progress.")
-        st.divider()
-        if st.button("🗑️ Reset all data", use_container_width=True):
-            st.session_state.balance = 0.0
-            st.session_state.transactions = []
-            st.session_state.savings_goal = 0.0
-            st.session_state.goal_celebrated = False
-            st.session_state.coins = 0
-            st.session_state.spent_since_coin = 0.0
-            save_data()
-            st.rerun()
 
     # Celebration animation when the savings goal is reached
     if (
