@@ -51,10 +51,9 @@ SHOP_ITEMS = [
     {"name": "Mobile Game Top-up",    "emoji": "🎮", "price": 15.00, "category": "Entertainment", "currency": "RM"},
     {"name": "Spotify (1 month)",     "emoji": "🎵", "price": 17.00, "category": "Entertainment", "currency": "RM"},
     {"name": "Netflix (1 month)",     "emoji": "📺", "price": 28.00, "category": "Entertainment", "currency": "RM"},
-    {"name": "Roblox Robux (400)",    "emoji": "🟥", "price": 20.00, "category": "Games",         "currency": "RM"},
-    {"name": "Roblox Robux (800)",    "emoji": "🟥", "price": 40.00, "category": "Games",         "currency": "RM"},
-    {"name": "Minecraft Minecoins",   "emoji": "⛏️", "price": 15.00, "category": "Games",         "currency": "RM"},
-    {"name": "Fortnite V-Bucks",      "emoji": "🪂", "price": 35.00, "category": "Games",         "currency": "RM"},
+    {"name": "Robux",                 "emoji": "🟥", "price": 0.05, "category": "Games",         "currency": "RM", "unit": "Robux"},
+    {"name": "Minecoins",             "emoji": "⛏️", "price": 0.04, "category": "Games",         "currency": "RM", "unit": "Minecoins"},
+    {"name": "V-Bucks",               "emoji": "🪂", "price": 0.09, "category": "Games",         "currency": "RM", "unit": "V-Bucks"},
     {"name": "Roblox Gift Card",      "emoji": "🎁", "price": 50.00, "category": "Games",         "currency": "RM"},
     {"name": "Steam Gift Card",       "emoji": "🎮", "price": 50.00, "category": "Games",         "currency": "RM"},
     {"name": "Nintendo eShop Card",   "emoji": "🍄", "price": 60.00, "category": "Games",         "currency": "RM"},
@@ -331,13 +330,25 @@ def shop_page():
     # Render item cards
     card_html = ""
     for item in affordable:
+        if item.get("unit"):
+            # Unit-based item (e.g. Robux): show how many you can buy with your balance
+            unit_price_display = to_display(item["price"])
+            qty = int(balance_display // unit_price_display) if unit_price_display > 0 else 0
+            price_line = f"{format_money(item['price'])} each"
+            badge = (
+                f"<span style='color:#2e7d32;font-weight:bold;'>"
+                f"Can buy {qty:,} {item['unit']}</span>"
+            )
+        else:
+            price_line = format_money(item["price"])
+            badge = "<span style='color:#2e7d32;font-weight:bold;'>✔ Affordable</span>"
         card_html += (
             f"<div class='shop-card' style='background: linear-gradient(135deg, #e8f5e9, #c8e6c9);"
             f"border: 2px solid #43a047;'>"
             f"<div class='shop-emoji'>{item['emoji']}</div>"
             f"<div class='shop-name'>{item['name']}</div>"
-            f"<div class='shop-price'>{format_money(item['price'])}</div>"
-            f"<div class='shop-badge'><span style='color:#2e7d32;font-weight:bold;'>✔ Affordable</span></div>"
+            f"<div class='shop-price'>{price_line}</div>"
+            f"<div class='shop-badge'>{badge}</div>"
             f"</div>"
         )
 
