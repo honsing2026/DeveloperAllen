@@ -12,3 +12,4 @@ __pycache__/
 !keep_this.log
 temp/*
 !.gitkeep
+.aider*
