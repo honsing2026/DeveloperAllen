@@ -32,71 +32,124 @@ CATEGORIES = [
 ]
 
 # Popular items you could buy, priced in RM (base currency).
-# Prices are approximate typical Malaysian prices.
+# Prices are approximate typical prices. Each item is tagged with the
+# currency "zone" it belongs to, so the shop only shows items relevant
+# to the currently selected currency.
 SHOP_ITEMS = [
-    # Food & drink
-    {"name": "Nasi Lemak",            "emoji": "🍚", "price": 3.50,  "category": "Food"},
-    {"name": "Roti Canai",            "emoji": "🫓", "price": 2.00,  "category": "Food"},
-    {"name": "Mee Goreng",            "emoji": "🍜", "price": 7.00,  "category": "Food"},
-    {"name": "Chicken Rice",          "emoji": "🍗", "price": 9.00,  "category": "Food"},
-    {"name": "Teh Tarik",             "emoji": "🧋", "price": 2.50,  "category": "Food"},
-    {"name": "Bubble Tea",            "emoji": "🥤", "price": 12.00, "category": "Food"},
-    {"name": "McDonald's Meal",       "emoji": "🍔", "price": 18.00, "category": "Food"},
-    {"name": "Pizza (personal)",      "emoji": "🍕", "price": 25.00, "category": "Food"},
-    {"name": "Sushi Set",             "emoji": "🍣", "price": 35.00, "category": "Food"},
-    # Transport
-    {"name": "LRT/MRT Ride",          "emoji": "🚇", "price": 3.00,  "category": "Transport"},
-    {"name": "Grab Ride (short)",     "emoji": "🚗", "price": 12.00, "category": "Transport"},
-    {"name": "Petrol (1 litre)",      "emoji": "⛽", "price": 2.05,  "category": "Transport"},
-    # School & stationery
-    {"name": "Notebook",              "emoji": "📓", "price": 5.00,  "category": "School"},
-    {"name": "Pen Set",               "emoji": "🖊️", "price": 8.00,  "category": "School"},
-    {"name": "School Bag",            "emoji": "🎒", "price": 80.00, "category": "School"},
-    # Entertainment
-    {"name": "Cinema Ticket",         "emoji": "🎬", "price": 20.00, "category": "Entertainment"},
-    {"name": "Mobile Game Top-up",    "emoji": "🎮", "price": 15.00, "category": "Entertainment"},
-    {"name": "Spotify (1 month)",     "emoji": "🎵", "price": 17.00, "category": "Entertainment"},
-    {"name": "Netflix (1 month)",     "emoji": "📺", "price": 28.00, "category": "Entertainment"},
-    {"name": "Book",                  "emoji": "📚", "price": 45.00, "category": "Entertainment"},
-    # Shopping
-    {"name": "T-shirt",               "emoji": "👕", "price": 35.00, "category": "Shopping"},
-    {"name": "Sneakers",              "emoji": "👟", "price": 150.00, "category": "Shopping"},
-    {"name": "Headphones",            "emoji": "🎧", "price": 120.00, "category": "Shopping"},
-    {"name": "Smartphone",            "emoji": "📱", "price": 1200.00, "category": "Shopping"},
-    {"name": "Laptop",                "emoji": "💻", "price": 3000.00, "category": "Shopping"},
-    {"name": "Bicycle",               "emoji": "🚲", "price": 800.00, "category": "Shopping"},
-    # Game currencies & digital items
-    {"name": "Roblox Robux (400)",    "emoji": "🟥", "price": 20.00,  "category": "Games"},
-    {"name": "Roblox Robux (800)",    "emoji": "🟥", "price": 40.00,  "category": "Games"},
-    {"name": "Minecraft Minecoins",   "emoji": "⛏️", "price": 15.00,  "category": "Games"},
-    {"name": "Fortnite V-Bucks",      "emoji": "🪂", "price": 35.00,  "category": "Games"},
-    {"name": "Roblox Gift Card",      "emoji": "🎁", "price": 50.00,  "category": "Games"},
-    {"name": "Steam Gift Card",       "emoji": "🎮", "price": 50.00,  "category": "Games"},
-    {"name": "Nintendo eShop Card",   "emoji": "🍄", "price": 60.00,  "category": "Games"},
-    {"name": "Among Us",              "emoji": "👾", "price": 12.00,  "category": "Games"},
-    {"name": "Minecraft (PC)",        "emoji": "🧱", "price": 120.00, "category": "Games"},
-    # Toys & fun
-    {"name": "Lego Set (small)",      "emoji": "🧩", "price": 45.00,  "category": "Toys"},
-    {"name": "Lego Set (large)",      "emoji": "🧱", "price": 250.00, "category": "Toys"},
-    {"name": "Stuffed Bear",          "emoji": "🧸", "price": 40.00,  "category": "Toys"},
-    {"name": "Stuffed Bunny",         "emoji": "🐰", "price": 35.00,  "category": "Toys"},
-    {"name": "Stuffed Unicorn",       "emoji": "🦄", "price": 55.00,  "category": "Toys"},
-    {"name": "Stuffed Dinosaur",      "emoji": "🦖", "price": 50.00,  "category": "Toys"},
-    {"name": "Hot Wheels Car",        "emoji": "🏎️", "price": 15.00,  "category": "Toys"},
-    {"name": "Rubik's Cube",          "emoji": "🧊", "price": 20.00,  "category": "Toys"},
-    {"name": "Yo-Yo",                 "emoji": "🪀", "price": 10.00,  "category": "Toys"},
-    {"name": "Fidget Spinner",        "emoji": "🌀", "price": 8.00,   "category": "Toys"},
-    {"name": "Squishmallow",          "emoji": "🫧", "price": 60.00,  "category": "Toys"},
-    {"name": "Pokémon Cards (pack)",  "emoji": "🃏", "price": 12.00,  "category": "Toys"},
-    {"name": "Nerf Blaster",          "emoji": "🔫", "price": 90.00,  "category": "Toys"},
-    {"name": "Board Game",            "emoji": "🎲", "price": 70.00,  "category": "Toys"},
-    {"name": "Scooter",               "emoji": "🛴", "price": 300.00, "category": "Toys"},
-    # Treats
-    {"name": "Ice Cream",             "emoji": "🍦", "price": 5.00,   "category": "Food"},
-    {"name": "Chocolate Bar",         "emoji": "🍫", "price": 4.00,   "category": "Food"},
-    {"name": "Gummy Bears",           "emoji": "🐻", "price": 6.00,   "category": "Food"},
-    {"name": "Donut",                 "emoji": "🍩", "price": 4.50,   "category": "Food"},
-    {"name": "Cupcake",               "emoji": "🧁", "price": 7.00,   "category": "Food"},
+    # ---- Malaysia (RM) ----
+    {"name": "Nasi Lemak",            "emoji": "🍚", "price": 3.50,  "category": "Food",          "currency": "RM"},
+    {"name": "Roti Canai",            "emoji": "🫓", "price": 2.00,  "category": "Food",          "currency": "RM"},
+    {"name": "Mee Goreng",            "emoji": "🍜", "price": 7.00,  "category": "Food",          "currency": "RM"},
+    {"name": "Chicken Rice",          "emoji": "🍗", "price": 9.00,  "category": "Food",          "currency": "RM"},
+    {"name": "Teh Tarik",             "emoji": "🧋", "price": 2.50,  "category": "Food",          "currency": "RM"},
+    {"name": "Bubble Tea",            "emoji": "🥤", "price": 12.00, "category": "Food",          "currency": "RM"},
+    {"name": "LRT/MRT Ride",          "emoji": "🚇", "price": 3.00,  "category": "Transport",     "currency": "RM"},
+    {"name": "Grab Ride (short)",     "emoji": "🚗", "price": 12.00, "category": "Transport",     "currency": "RM"},
+    {"name": "Petrol (1 litre)",      "emoji": "⛽", "price": 2.05,  "category": "Transport",     "currency": "RM"},
+    {"name": "School Bag",            "emoji": "🎒", "price": 80.00, "category": "School",        "currency": "RM"},
+    {"name": "Cinema Ticket",         "emoji": "🎬", "price": 20.00, "category": "Entertainment", "currency": "RM"},
+    {"name": "Mobile Game Top-up",    "emoji": "🎮", "price": 15.00, "category": "Entertainment", "currency": "RM"},
+    {"name": "Spotify (1 month)",     "emoji": "🎵", "price": 17.00, "category": "Entertainment", "currency": "RM"},
+    {"name": "Netflix (1 month)",     "emoji": "📺", "price": 28.00, "category": "Entertainment", "currency": "RM"},
+    {"name": "Roblox Robux (400)",    "emoji": "🟥", "price": 20.00, "category": "Games",         "currency": "RM"},
+    {"name": "Roblox Robux (800)",    "emoji": "🟥", "price": 40.00, "category": "Games",         "currency": "RM"},
+    {"name": "Minecraft Minecoins",   "emoji": "⛏️", "price": 15.00, "category": "Games",         "currency": "RM"},
+    {"name": "Fortnite V-Bucks",      "emoji": "🪂", "price": 35.00, "category": "Games",         "currency": "RM"},
+    {"name": "Roblox Gift Card",      "emoji": "🎁", "price": 50.00, "category": "Games",         "currency": "RM"},
+    {"name": "Steam Gift Card",       "emoji": "🎮", "price": 50.00, "category": "Games",         "currency": "RM"},
+    {"name": "Nintendo eShop Card",   "emoji": "🍄", "price": 60.00, "category": "Games",         "currency": "RM"},
+    {"name": "Among Us",              "emoji": "👾", "price": 12.00, "category": "Games",         "currency": "RM"},
+    {"name": "Minecraft (PC)",        "emoji": "🧱", "price": 120.00, "category": "Games",        "currency": "RM"},
+    {"name": "Lego Set (small)",      "emoji": "🧩", "price": 45.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Lego Set (large)",      "emoji": "🧱", "price": 250.00, "category": "Toys",         "currency": "RM"},
+    {"name": "Stuffed Bear",          "emoji": "🧸", "price": 40.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Stuffed Bunny",         "emoji": "🐰", "price": 35.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Stuffed Unicorn",       "emoji": "🦄", "price": 55.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Stuffed Dinosaur",      "emoji": "🦖", "price": 50.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Hot Wheels Car",        "emoji": "🏎️", "price": 15.00, "category": "Toys",         "currency": "RM"},
+    {"name": "Rubik's Cube",          "emoji": "🧊", "price": 20.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Yo-Yo",                 "emoji": "🪀", "price": 10.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Fidget Spinner",        "emoji": "🌀", "price": 8.00,  "category": "Toys",          "currency": "RM"},
+    {"name": "Squishmallow",          "emoji": "🫧", "price": 60.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Pokémon Cards (pack)",  "emoji": "🃏", "price": 12.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Nerf Blaster",          "emoji": "🔫", "price": 90.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Board Game",            "emoji": "🎲", "price": 70.00, "category": "Toys",          "currency": "RM"},
+    {"name": "Scooter",               "emoji": "🛴", "price": 300.00, "category": "Toys",         "currency": "RM"},
+    {"name": "Ice Cream",             "emoji": "🍦", "price": 5.00,  "category": "Food",          "currency": "RM"},
+    {"name": "Chocolate Bar",         "emoji": "🍫", "price": 4.00,  "category": "Food",          "currency": "RM"},
+    {"name": "Gummy Bears",           "emoji": "🐻", "price": 6.00,  "category": "Food",          "currency": "RM"},
+    {"name": "Donut",                 "emoji": "🍩", "price": 4.50,  "category": "Food",          "currency": "RM"},
+    {"name": "Cupcake",               "emoji": "🧁", "price": 7.00,  "category": "Food",          "currency": "RM"},
+
+    # ---- United States (USD) ----
+    {"name": "Hamburger",             "emoji": "🍔", "price": 30.00, "category": "Food",          "currency": "USD"},
+    {"name": "Hot Dog",               "emoji": "🌭", "price": 12.00, "category": "Food",          "currency": "USD"},
+    {"name": "Pizza Slice",           "emoji": "🍕", "price": 15.00, "category": "Food",          "currency": "USD"},
+    {"name": "Donut (US)",            "emoji": "🍩", "price": 10.00, "category": "Food",          "currency": "USD"},
+    {"name": "Starbucks Coffee",      "emoji": "☕", "price": 25.00, "category": "Food",          "currency": "USD"},
+    {"name": "Yellow School Bus Ride", "emoji": "🚌", "price": 10.00, "category": "Transport",    "currency": "USD"},
+    {"name": "Uber Ride",             "emoji": "🚕", "price": 60.00, "category": "Transport",     "currency": "USD"},
+    {"name": "Baseball Cap",          "emoji": "🧢", "price": 90.00, "category": "Shopping",      "currency": "USD"},
+    {"name": "Basketball",            "emoji": "🏀", "price": 120.00, "category": "Toys",         "currency": "USD"},
+    {"name": "American Football",     "emoji": "🏈", "price": 150.00, "category": "Toys",         "currency": "USD"},
+    {"name": "Nintendo Switch Game",  "emoji": "🎮", "price": 250.00, "category": "Games",        "currency": "USD"},
+    {"name": "Amazon Gift Card",      "emoji": "📦", "price": 100.00, "category": "Shopping",     "currency": "USD"},
+
+    # ---- Europe (EUR) ----
+    {"name": "Croissant",             "emoji": "🥐", "price": 12.00, "category": "Food",          "currency": "EUR"},
+    {"name": "Baguette",              "emoji": "🥖", "price": 8.00,  "category": "Food",          "currency": "EUR"},
+    {"name": "Gelato",                "emoji": "🍨", "price": 15.00, "category": "Food",          "currency": "EUR"},
+    {"name": "Pretzel",               "emoji": "🥨", "price": 10.00, "category": "Food",          "currency": "EUR"},
+    {"name": "Euro Train Ticket",     "emoji": "🚆", "price": 80.00, "category": "Transport",     "currency": "EUR"},
+    {"name": "Soccer Ball",           "emoji": "⚽", "price": 100.00, "category": "Toys",         "currency": "EUR"},
+    {"name": "Museum Ticket",         "emoji": "🏛️", "price": 60.00, "category": "Entertainment", "currency": "EUR"},
+
+    # ---- United Kingdom (GBP) ----
+    {"name": "Fish and Chips",        "emoji": "🍟", "price": 45.00, "category": "Food",          "currency": "GBP"},
+    {"name": "Tea and Scones",        "emoji": "🫖", "price": 25.00, "category": "Food",          "currency": "GBP"},
+    {"name": "Double Decker Bus",     "emoji": "🚌", "price": 15.00, "category": "Transport",     "currency": "GBP"},
+    {"name": "Premier League Jersey", "emoji": "👕", "price": 350.00, "category": "Shopping",     "currency": "GBP"},
+    {"name": "Harry Potter Book",     "emoji": "📚", "price": 60.00, "category": "Entertainment", "currency": "GBP"},
+
+    # ---- Japan (JPY) ----
+    {"name": "Sushi Set",             "emoji": "🍣", "price": 120.00, "category": "Food",         "currency": "JPY"},
+    {"name": "Ramen Bowl",            "emoji": "🍜", "price": 45.00, "category": "Food",          "currency": "JPY"},
+    {"name": "Onigiri",               "emoji": "🍙", "price": 8.00,  "category": "Food",          "currency": "JPY"},
+    {"name": "Matcha Ice Cream",      "emoji": "🍦", "price": 20.00, "category": "Food",          "currency": "JPY"},
+    {"name": "Shinkansen Ticket",     "emoji": "🚄", "price": 700.00, "category": "Transport",    "currency": "JPY"},
+    {"name": "Gachapon",              "emoji": "🎰", "price": 15.00, "category": "Toys",          "currency": "JPY"},
+    {"name": "Anime Figure",          "emoji": "🗿", "price": 250.00, "category": "Toys",         "currency": "JPY"},
+    {"name": "Nintendo Game (JP)",    "emoji": "🎮", "price": 300.00, "category": "Games",        "currency": "JPY"},
+
+    # ---- China (CNY) ----
+    {"name": "Dumplings",             "emoji": "🥟", "price": 20.00, "category": "Food",          "currency": "CNY"},
+    {"name": "Bubble Tea (CN)",       "emoji": "🧋", "price": 15.00, "category": "Food",          "currency": "CNY"},
+    {"name": "Peking Duck",           "emoji": "🦆", "price": 150.00, "category": "Food",         "currency": "CNY"},
+    {"name": "High-Speed Rail Ticket", "emoji": "🚄", "price": 200.00, "category": "Transport",   "currency": "CNY"},
+    {"name": "Mahjong Set",           "emoji": "🀄", "price": 120.00, "category": "Toys",         "currency": "CNY"},
+    {"name": "Kite",                  "emoji": "🪁", "price": 30.00, "category": "Toys",          "currency": "CNY"},
+
+    # ---- Singapore (SGD) ----
+    {"name": "Chicken Rice (SG)",     "emoji": "🍗", "price": 5.00,  "category": "Food",          "currency": "SGD"},
+    {"name": "Chili Crab",            "emoji": "🦀", "price": 60.00, "category": "Food",          "currency": "SGD"},
+    {"name": "Kaya Toast",            "emoji": "🍞", "price": 4.00,  "category": "Food",          "currency": "SGD"},
+    {"name": "MRT Ride (SG)",         "emoji": "🚇", "price": 2.00,  "category": "Transport",     "currency": "SGD"},
+    {"name": "Merlion Souvenir",      "emoji": "🦁", "price": 15.00, "category": "Toys",          "currency": "SGD"},
+
+    # ---- Australia (AUD) ----
+    {"name": "Meat Pie",              "emoji": "🥧", "price": 8.00,  "category": "Food",          "currency": "AUD"},
+    {"name": "Vegemite Toast",        "emoji": "🍞", "price": 5.00,  "category": "Food",          "currency": "AUD"},
+    {"name": "Kangaroo Plush",        "emoji": "🦘", "price": 30.00, "category": "Toys",          "currency": "AUD"},
+    {"name": "Surfboard",             "emoji": "🏄", "price": 400.00, "category": "Toys",         "currency": "AUD"},
+    {"name": "Boomerang",             "emoji": "🪃", "price": 20.00, "category": "Toys",          "currency": "AUD"},
+
+    # ---- India (INR) ----
+    {"name": "Samosa",                "emoji": "🥟", "price": 20.00, "category": "Food",          "currency": "INR"},
+    {"name": "Butter Chicken",        "emoji": "🍛", "price": 350.00, "category": "Food",         "currency": "INR"},
+    {"name": "Masala Chai",           "emoji": "🫖", "price": 15.00, "category": "Food",          "currency": "INR"},
+    {"name": "Auto Rickshaw Ride",    "emoji": "🛺", "price": 50.00, "category": "Transport",     "currency": "INR"},
+    {"name": "Cricket Bat",           "emoji": "🏏", "price": 800.00, "category": "Toys",         "currency": "INR"},
+    {"name": "Cricket Ball",          "emoji": "🔴", "price": 150.00, "category": "Toys",         "currency": "INR"},
 ]
 
 def load_data():
@@ -254,10 +307,14 @@ def shop_page():
         unsafe_allow_html=True,
     )
 
+    # Only show items relevant to the currently selected currency zone
+    zone_items = [i for i in SHOP_ITEMS if i.get("currency") == st.session_state.currency]
+    st.caption(f"Showing items for the **{st.session_state.currency}** zone.")
+
     # Filter by category
-    shop_categories = sorted({item["category"] for item in SHOP_ITEMS})
+    shop_categories = sorted({item["category"] for item in zone_items})
     filter_cat = st.selectbox("Filter by category", ["All"] + shop_categories)
-    items = SHOP_ITEMS if filter_cat == "All" else [i for i in SHOP_ITEMS if i["category"] == filter_cat]
+    items = zone_items if filter_cat == "All" else [i for i in zone_items if i["category"] == filter_cat]
 
     # Only show items you can currently afford, cheapest first
     affordable = sorted(
