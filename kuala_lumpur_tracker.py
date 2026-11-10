@@ -259,36 +259,28 @@ def shop_page():
     filter_cat = st.selectbox("Filter by category", ["All"] + shop_categories)
     items = SHOP_ITEMS if filter_cat == "All" else [i for i in SHOP_ITEMS if i["category"] == filter_cat]
 
-    # Sort by price ascending so affordable items appear first
-    items = sorted(items, key=lambda i: i["price"])
+    # Only show items you can currently afford, cheapest first
+    affordable = sorted(
+        (i for i in items if to_display(i["price"]) <= balance_display),
+        key=lambda i: i["price"],
+    )
 
-    affordable = [i for i in items if to_display(i["price"]) <= balance_display]
-    st.write(f"You can afford **{len(affordable)}** of {len(items)} items shown.")
+    if not affordable:
+        st.info("You can't afford anything in this category yet — keep saving! 💪")
+        return
+
+    st.write(f"You can afford **{len(affordable)}** item(s).")
 
     # Render item cards
     card_html = ""
-    for item in items:
-        price_display = to_display(item["price"])
-        can_afford = price_display <= balance_display
-        if can_afford:
-            style = (
-                "background: linear-gradient(135deg, #e8f5e9, #c8e6c9);"
-                "border: 2px solid #43a047;"
-            )
-            badge = "<span style='color:#2e7d32;font-weight:bold;'>✔ Affordable</span>"
-        else:
-            style = (
-                "background: #f5f5f5;"
-                "border: 2px dashed #bdbdbd;"
-                "opacity: 0.7;"
-            )
-            badge = "<span style='color:#9e9e9e;'>🔒 Need more</span>"
+    for item in affordable:
         card_html += (
-            f"<div class='shop-card' style='{style}'>"
+            f"<div class='shop-card' style='background: linear-gradient(135deg, #e8f5e9, #c8e6c9);"
+            f"border: 2px solid #43a047;'>"
             f"<div class='shop-emoji'>{item['emoji']}</div>"
             f"<div class='shop-name'>{item['name']}</div>"
             f"<div class='shop-price'>{format_money(item['price'])}</div>"
-            f"<div class='shop-badge'>{badge}</div>"
+            f"<div class='shop-badge'><span style='color:#2e7d32;font-weight:bold;'>✔ Affordable</span></div>"
             f"</div>"
         )
 
