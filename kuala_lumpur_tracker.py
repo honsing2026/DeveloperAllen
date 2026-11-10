@@ -31,6 +31,42 @@ CATEGORIES = [
     "Other",
 ]
 
+# Popular items you could buy, priced in RM (base currency).
+# Prices are approximate typical Malaysian prices.
+SHOP_ITEMS = [
+    # Food & drink
+    {"name": "Nasi Lemak",            "emoji": "🍚", "price": 3.50,  "category": "Food"},
+    {"name": "Roti Canai",            "emoji": "🫓", "price": 2.00,  "category": "Food"},
+    {"name": "Mee Goreng",            "emoji": "🍜", "price": 7.00,  "category": "Food"},
+    {"name": "Chicken Rice",          "emoji": "🍗", "price": 9.00,  "category": "Food"},
+    {"name": "Teh Tarik",             "emoji": "🧋", "price": 2.50,  "category": "Food"},
+    {"name": "Bubble Tea",            "emoji": "🥤", "price": 12.00, "category": "Food"},
+    {"name": "McDonald's Meal",       "emoji": "🍔", "price": 18.00, "category": "Food"},
+    {"name": "Pizza (personal)",      "emoji": "🍕", "price": 25.00, "category": "Food"},
+    {"name": "Sushi Set",             "emoji": "🍣", "price": 35.00, "category": "Food"},
+    # Transport
+    {"name": "LRT/MRT Ride",          "emoji": "🚇", "price": 3.00,  "category": "Transport"},
+    {"name": "Grab Ride (short)",     "emoji": "🚗", "price": 12.00, "category": "Transport"},
+    {"name": "Petrol (1 litre)",      "emoji": "⛽", "price": 2.05,  "category": "Transport"},
+    # School & stationery
+    {"name": "Notebook",              "emoji": "📓", "price": 5.00,  "category": "School"},
+    {"name": "Pen Set",               "emoji": "🖊️", "price": 8.00,  "category": "School"},
+    {"name": "School Bag",            "emoji": "🎒", "price": 80.00, "category": "School"},
+    # Entertainment
+    {"name": "Cinema Ticket",         "emoji": "🎬", "price": 20.00, "category": "Entertainment"},
+    {"name": "Mobile Game Top-up",    "emoji": "🎮", "price": 15.00, "category": "Entertainment"},
+    {"name": "Spotify (1 month)",     "emoji": "🎵", "price": 17.00, "category": "Entertainment"},
+    {"name": "Netflix (1 month)",     "emoji": "📺", "price": 28.00, "category": "Entertainment"},
+    {"name": "Book",                  "emoji": "📚", "price": 45.00, "category": "Entertainment"},
+    # Shopping
+    {"name": "T-shirt",               "emoji": "👕", "price": 35.00, "category": "Shopping"},
+    {"name": "Sneakers",              "emoji": "👟", "price": 150.00, "category": "Shopping"},
+    {"name": "Headphones",            "emoji": "🎧", "price": 120.00, "category": "Shopping"},
+    {"name": "Smartphone",            "emoji": "📱", "price": 1200.00, "category": "Shopping"},
+    {"name": "Laptop",                "emoji": "💻", "price": 3000.00, "category": "Shopping"},
+    {"name": "Bicycle",               "emoji": "🚲", "price": 800.00, "category": "Shopping"},
+]
+
 def load_data():
     """Load persisted tracker data from disk, or return defaults."""
     if os.path.exists(SAVE_FILE):
@@ -162,6 +198,91 @@ def get_advancements():
         {"id": i, "label": l, "emoji": e, "desc": d, "unlocked": bool(c)}
         for (i, l, e, d, c) in defs
     ]
+
+
+def shop_page():
+    st.title("🛍️ What Can I Buy?")
+    st.caption("Popular items and what your current balance can afford.")
+
+    balance_display = to_display(st.session_state.balance)
+    st.markdown(
+        f"""
+        <div style="
+            text-align: center;
+            padding: 16px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1976d2, #42a5f5);
+            color: white;
+            margin-bottom: 16px;
+        ">
+            <div style="font-size: 14px; opacity: 0.9;">Your balance</div>
+            <div style="font-size: 32px; font-weight: bold;">{format_money(st.session_state.balance)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Filter by category
+    shop_categories = sorted({item["category"] for item in SHOP_ITEMS})
+    filter_cat = st.selectbox("Filter by category", ["All"] + shop_categories)
+    items = SHOP_ITEMS if filter_cat == "All" else [i for i in SHOP_ITEMS if i["category"] == filter_cat]
+
+    # Sort by price ascending so affordable items appear first
+    items = sorted(items, key=lambda i: i["price"])
+
+    affordable = [i for i in items if to_display(i["price"]) <= balance_display]
+    st.write(f"You can afford **{len(affordable)}** of {len(items)} items shown.")
+
+    # Render item cards
+    card_html = ""
+    for item in items:
+        price_display = to_display(item["price"])
+        can_afford = price_display <= balance_display
+        if can_afford:
+            style = (
+                "background: linear-gradient(135deg, #e8f5e9, #c8e6c9);"
+                "border: 2px solid #43a047;"
+            )
+            badge = "<span style='color:#2e7d32;font-weight:bold;'>✔ Affordable</span>"
+        else:
+            style = (
+                "background: #f5f5f5;"
+                "border: 2px dashed #bdbdbd;"
+                "opacity: 0.7;"
+            )
+            badge = "<span style='color:#9e9e9e;'>🔒 Need more</span>"
+        card_html += (
+            f"<div class='shop-card' style='{style}'>"
+            f"<div class='shop-emoji'>{item['emoji']}</div>"
+            f"<div class='shop-name'>{item['name']}</div>"
+            f"<div class='shop-price'>{format_money(item['price'])}</div>"
+            f"<div class='shop-badge'>{badge}</div>"
+            f"</div>"
+        )
+
+    st.markdown(
+        f"""
+        <style>
+        .shop-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }}
+        .shop-card {{
+            text-align: center;
+            padding: 14px 10px;
+            border-radius: 12px;
+        }}
+        .shop-emoji {{ font-size: 36px; line-height: 1; }}
+        .shop-name {{ font-weight: bold; margin-top: 6px; font-size: 14px; }}
+        .shop-price {{ font-size: 13px; color: #555; margin-top: 2px; }}
+        .shop-badge {{ font-size: 12px; margin-top: 6px; }}
+        </style>
+        <div class="shop-grid">{card_html}</div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def advancements_page():
@@ -369,10 +490,11 @@ def main():
     # Sidebar stats
     with st.sidebar:
         st.header("🧭 Navigation")
+        pages = ["Tracker", "Advancements", "Shop"]
         page = st.radio(
             "Go to",
-            ["Tracker", "Advancements"],
-            index=0 if st.session_state.page == "Tracker" else 1,
+            pages,
+            index=pages.index(st.session_state.page) if st.session_state.page in pages else 0,
         )
         if page != st.session_state.page:
             st.session_state.page = page
@@ -450,7 +572,7 @@ def main():
             st.rerun()
 
     # Top navigation bar
-    nav_tracker, nav_adv, _ = st.columns([1, 1, 4])
+    nav_tracker, nav_adv, nav_shop, _ = st.columns([1, 1, 1, 3])
     with nav_tracker:
         if st.button("💰 Tracker", use_container_width=True):
             st.session_state.page = "Tracker"
@@ -459,10 +581,19 @@ def main():
         if st.button("🏅 Advancements", use_container_width=True):
             st.session_state.page = "Advancements"
             st.rerun()
+    with nav_shop:
+        if st.button("🛍️ Shop", use_container_width=True):
+            st.session_state.page = "Shop"
+            st.rerun()
 
     # Advancements page
     if st.session_state.page == "Advancements":
         advancements_page()
+        return
+
+    # Shop page
+    if st.session_state.page == "Shop":
+        shop_page()
         return
 
     # Balance summary (rendered after the sidebar so coin updates show immediately)
