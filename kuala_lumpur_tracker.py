@@ -214,14 +214,22 @@ def main():
     # Balance summary (rendered after the sidebar so coin updates show immediately)
     balance = st.session_state.balance
 
-    # Coin row: one gold coin per 100 earned
-    coin_html = "".join(
-        f"<span class='coin{' coin-flip' if st.session_state.coin_animate else ''}' "
-        f"style='animation-delay:{i * 0.08:.2f}s;'>🪙</span>"
-        for i in range(st.session_state.coins)
-    )
-    if not coin_html:
+    # Coin row: individual coins up to 10, then a single coin with a count
+    coins = st.session_state.coins
+    flip_class = " coin-flip" if st.session_state.coin_animate else ""
+    if coins == 0:
         coin_html = "<span class='coin-empty'>No coins yet — earn 100 to get a gold coin!</span>"
+    elif coins <= 10:
+        coin_html = "".join(
+            f"<span class='coin{flip_class}' "
+            f"style='animation-delay:{i * 0.08:.2f}s;'>🪙</span>"
+            for i in range(coins)
+        )
+    else:
+        coin_html = (
+            f"<span class='coin{flip_class}'>🪙</span>"
+            f"<span class='coin-count'>× {coins}</span>"
+        )
 
     st.markdown(
         f"""
@@ -259,6 +267,12 @@ def main():
         .coin-empty {{
             font-size: 13px;
             color: #8d6e63;
+        }}
+        .coin-count {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #b8860b;
+            margin-left: 4px;
         }}
         .coin-note {{
             text-align: center;
