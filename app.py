@@ -22,6 +22,8 @@ def save_game():
     data = {
         "xp": st.session_state.get("xp", 0),
         "garden": st.session_state.get("garden", []),
+        "tasks": st.session_state.get("tasks", []),
+        "clock_skin": st.session_state.get("clock_skin", "Classic"),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -286,12 +288,13 @@ def home_page():
     
     # Task list (persisted across reruns)
     if "tasks" not in st.session_state:
-        st.session_state.tasks = ["Task 1", "Task 2", "Task 3", "Task 4"]
+        st.session_state.tasks = saved.get("tasks", ["Task 1", "Task 2", "Task 3", "Task 4"])
     create_task_list(st.session_state.tasks)
 
     # Add task button
     if st.button("Add Task"):
         st.session_state.tasks.append("New Task")
+        save_game()
         st.rerun()
 
     # Pomodoro timer
@@ -311,6 +314,7 @@ def home_page():
     if st.button(f"🎨 Skins (current: {current_skin})"):
         idx = skin_names.index(current_skin) if current_skin in skin_names else 0
         st.session_state.clock_skin = skin_names[(idx + 1) % len(skin_names)]
+        save_game()
         st.rerun()
 
     if st.button("Start Pomodoro"):
@@ -344,6 +348,9 @@ def home_page():
         st.success("🎉 Pomodoro complete! You earned 10 XP.")
         st.session_state.xp_gained = False
         st.session_state.xp_animate = True
+
+    # Auto-save task edits so progress survives restarts and tab closes
+    save_game()
 
 # Garden page
 def garden_page():
@@ -626,7 +633,7 @@ def main():
     if "duplicate_removed" not in st.session_state:
         st.session_state.duplicate_removed = None
     if "clock_skin" not in st.session_state:
-        st.session_state.clock_skin = "Classic"
+        st.session_state.clock_skin = saved.get("clock_skin", "Classic")
     if "pending_delete" not in st.session_state:
         st.session_state.pending_delete = None
 

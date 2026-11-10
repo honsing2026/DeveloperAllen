@@ -115,6 +115,9 @@ def main():
     if "goal_celebrated" not in st.session_state:
         st.session_state.goal_celebrated = saved.get("goal_celebrated", False)
 
+    # Auto-save on every rerun so progress survives restarts and tab closes
+    save_data()
+
     st.title("💰 Kuala Lumpur Pocket Money & Allowance Tracker")
     st.caption("Track your daily allowance and spending. Switch between RM and USD in the sidebar.")
     st.caption("🎯 Savings Goal: set a target in the sidebar and watch your balance grow toward it.")
