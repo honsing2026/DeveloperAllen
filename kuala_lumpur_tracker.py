@@ -388,14 +388,30 @@ def main():
             <style>
             .trophy-shelf {{
                 display: flex;
-                flex-wrap: wrap;
+                flex-wrap: nowrap;
                 gap: 12px;
                 padding: 16px;
                 border-radius: 12px;
                 background: linear-gradient(180deg, #fff8e1, #ffe0b2);
                 border: 2px solid #ffb300;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scroll-behavior: smooth;
+                -webkit-overflow-scrolling: touch;
+            }}
+            .trophy-shelf::-webkit-scrollbar {{
+                height: 8px;
+            }}
+            .trophy-shelf::-webkit-scrollbar-thumb {{
+                background: #ffb300;
+                border-radius: 4px;
+            }}
+            .trophy-shelf::-webkit-scrollbar-track {{
+                background: #fff3cd;
+                border-radius: 4px;
             }}
             .trophy {{
+                flex: 0 0 auto;
                 text-align: center;
                 padding: 12px 16px;
                 border-radius: 10px;
