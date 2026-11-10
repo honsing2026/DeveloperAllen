@@ -53,6 +53,7 @@ def save_data():
         "earned_since_coin": st.session_state.get("earned_since_coin", 0.0),
         "trophies": st.session_state.get("trophies", []),
         "announcement_dismissed": st.session_state.get("announcement_dismissed", False),
+        "elon_announced": st.session_state.get("elon_announced", False),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -291,6 +292,8 @@ def main():
         st.session_state.announcement_dismissed = saved.get("announcement_dismissed", False)
     if "page" not in st.session_state:
         st.session_state.page = "Tracker"
+    if "elon_announced" not in st.session_state:
+        st.session_state.elon_announced = saved.get("elon_announced", False)
 
     # Auto-save on every rerun so progress survives restarts and tab closes
     save_data()
@@ -418,6 +421,7 @@ def main():
             st.session_state.earned_since_coin = 0.0
             st.session_state.trophies = []
             st.session_state.announcement_dismissed = False
+            st.session_state.elon_announced = False
             save_data()
             st.rerun()
 
@@ -514,6 +518,45 @@ def main():
         unsafe_allow_html=True,
     )
     st.session_state.coin_animate = False
+
+    # Elon Musk announcement: fires once when the balance reaches 10,000 (in current currency)
+    if not st.session_state.elon_announced and to_display(st.session_state.balance) >= 10000:
+        st.session_state.elon_announced = True
+        save_data()
+        st.markdown(
+            """
+            <style>
+            @keyframes elon-pop {
+                0%   { transform: scale(0.6) rotate(-3deg); opacity: 0; }
+                60%  { transform: scale(1.08) rotate(1deg); opacity: 1; }
+                100% { transform: scale(1) rotate(0deg); opacity: 1; }
+            }
+            @keyframes elon-glow {
+                0%   { box-shadow: 0 0 12px #00c2ff, 0 0 24px #7b2ff7; }
+                50%  { box-shadow: 0 0 30px #00c2ff, 0 0 60px #7b2ff7; }
+                100% { box-shadow: 0 0 12px #00c2ff, 0 0 24px #7b2ff7; }
+            }
+            .elon-banner {
+                text-align: center;
+                padding: 24px;
+                margin-bottom: 16px;
+                border-radius: 16px;
+                background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+                color: white;
+                animation: elon-pop 0.8s ease-out, elon-glow 2.5s ease-in-out infinite;
+            }
+            .elon-banner .rocket { font-size: 48px; }
+            .elon-banner .title { font-size: 26px; font-weight: bold; margin-top: 6px; }
+            .elon-banner .sub { font-size: 15px; opacity: 0.9; margin-top: 6px; }
+            </style>
+            <div class="elon-banner">
+                <div class="rocket">🚀</div>
+                <div class="title">Elon Musk</div>
+                <div class="sub">You reached 10,000! To the moon! 🌕</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Celebration animation when the savings goal is reached
     if (
