@@ -31,6 +31,7 @@ def save_data():
     data = {
         "balance": st.session_state.get("balance", 0.0),
         "transactions": st.session_state.get("transactions", []),
+        "savings_goal": st.session_state.get("savings_goal", 0.0),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -76,9 +77,12 @@ def main():
         st.session_state.balance = saved.get("balance", 0.0)
     if "transactions" not in st.session_state:
         st.session_state.transactions = saved.get("transactions", [])
+    if "savings_goal" not in st.session_state:
+        st.session_state.savings_goal = saved.get("savings_goal", 0.0)
 
     st.title("💰 Kuala Lumpur Pocket Money & Allowance Tracker")
     st.caption("Track your daily allowance and spending in Malaysian Ringgit (RM).")
+    st.caption("🎯 Savings Goal: set a target in the sidebar and watch your balance grow toward it.")
 
     # Balance summary
     balance = st.session_state.balance
@@ -113,9 +117,29 @@ def main():
         st.metric("Total Spent", format_rm(expenses))
         st.metric("Transactions", len(st.session_state.transactions))
         st.divider()
+        st.subheader("🎯 Savings Goal")
+        goal = st.number_input(
+            "Target (RM)",
+            min_value=0.0,
+            step=10.0,
+            format="%.2f",
+            value=float(st.session_state.savings_goal),
+        )
+        if goal != st.session_state.savings_goal:
+            st.session_state.savings_goal = goal
+            save_data()
+        if st.session_state.savings_goal > 0:
+            pct = min(max(st.session_state.balance / st.session_state.savings_goal, 0.0), 1.0)
+            st.progress(pct, text=f"{format_rm(st.session_state.balance)} / {format_rm(st.session_state.savings_goal)}")
+            if st.session_state.balance >= st.session_state.savings_goal:
+                st.success("🎉 Savings goal reached!")
+        else:
+            st.caption("Set a target above to track your progress.")
+        st.divider()
         if st.button("🗑️ Reset all data", use_container_width=True):
             st.session_state.balance = 0.0
             st.session_state.transactions = []
+            st.session_state.savings_goal = 0.0
             save_data()
             st.rerun()
 
