@@ -5,6 +5,12 @@ from datetime import date, datetime
 
 SAVE_FILE = "kl_tracker_data.json"
 
+# Supported currencies. Amounts are stored internally in RM (base currency).
+CURRENCIES = {
+    "RM": {"symbol": "RM", "rate": 1.0},        # Malaysian Ringgit (base)
+    "USD": {"symbol": "$", "rate": 0.21},       # 1 RM ≈ 0.21 USD (fixed rate)
+}
+
 CATEGORIES = [
     "Allowance",
     "Food",
@@ -32,6 +38,7 @@ def save_data():
         "balance": st.session_state.get("balance", 0.0),
         "transactions": st.session_state.get("transactions", []),
         "savings_goal": st.session_state.get("savings_goal", 0.0),
+        "currency": st.session_state.get("currency", "RM"),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -39,9 +46,23 @@ def save_data():
     except OSError:
         pass
 
-def format_rm(amount):
-    """Format a number as Malaysian Ringgit."""
-    return f"RM {amount:,.2f}"
+def format_money(amount_rm):
+    """Format an RM amount in the currently selected currency."""
+    code = st.session_state.get("currency", "RM")
+    cur = CURRENCIES.get(code, CURRENCIES["RM"])
+    converted = amount_rm * cur["rate"]
+    return f"{cur['symbol']} {converted:,.2f}"
+
+def to_display(amount_rm):
+    """Convert an RM amount to the currently selected currency (number only)."""
+    code = st.session_state.get("currency", "RM")
+    return amount_rm * CURRENCIES.get(code, CURRENCIES["RM"])["rate"]
+
+def from_display(amount_display):
+    """Convert an amount in the selected currency back to RM."""
+    code = st.session_state.get("currency", "RM")
+    rate = CURRENCIES.get(code, CURRENCIES["RM"])["rate"]
+    return amount_display / rate if rate else amount_display
 
 def add_transaction(kind, amount, category, note):
     """Record a transaction and update the balance."""
@@ -79,9 +100,11 @@ def main():
         st.session_state.transactions = saved.get("transactions", [])
     if "savings_goal" not in st.session_state:
         st.session_state.savings_goal = saved.get("savings_goal", 0.0)
+    if "currency" not in st.session_state:
+        st.session_state.currency = saved.get("currency", "RM")
 
     st.title("💰 Kuala Lumpur Pocket Money & Allowance Tracker")
-    st.caption("Track your daily allowance and spending in Malaysian Ringgit (RM).")
+    st.caption("Track your daily allowance and spending. Switch between RM and USD in the sidebar.")
     st.caption("🎯 Savings Goal: set a target in the sidebar and watch your balance grow toward it.")
 
     # Balance summary
@@ -102,7 +125,7 @@ def main():
         </style>
         <div class="balance-card">
             <div class="balance-label">Current Balance</div>
-            <div class="balance-value">{format_rm(balance)}</div>
+            <div class="balance-value">{format_money(balance)}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -110,27 +133,44 @@ def main():
 
     # Sidebar stats
     with st.sidebar:
+        st.header("💱 Currency")
+        currency = st.radio(
+            "Display currency",
+            list(CURRENCIES.keys()),
+            index=list(CURRENCIES.keys()).index(st.session_state.currency),
+            horizontal=True,
+        )
+        if currency != st.session_state.currency:
+            st.session_state.currency = currency
+            save_data()
+            st.rerun()
+
+        st.divider()
         st.header("📊 Summary")
         income = sum(t["amount"] for t in st.session_state.transactions if t["amount"] > 0)
         expenses = sum(-t["amount"] for t in st.session_state.transactions if t["amount"] < 0)
-        st.metric("Total Income", format_rm(income))
-        st.metric("Total Spent", format_rm(expenses))
+        st.metric("Total Income", format_money(income))
+        st.metric("Total Spent", format_money(expenses))
         st.metric("Transactions", len(st.session_state.transactions))
         st.divider()
         st.subheader("🎯 Savings Goal")
-        goal = st.number_input(
-            "Target (RM)",
+        goal_display = st.number_input(
+            f"Target ({st.session_state.currency})",
             min_value=0.0,
             step=10.0,
             format="%.2f",
-            value=float(st.session_state.savings_goal),
+            value=float(to_display(st.session_state.savings_goal)),
         )
-        if goal != st.session_state.savings_goal:
-            st.session_state.savings_goal = goal
+        goal_rm = from_display(goal_display)
+        if abs(goal_rm - st.session_state.savings_goal) > 0.005:
+            st.session_state.savings_goal = goal_rm
             save_data()
         if st.session_state.savings_goal > 0:
             pct = min(max(st.session_state.balance / st.session_state.savings_goal, 0.0), 1.0)
-            st.progress(pct, text=f"{format_rm(st.session_state.balance)} / {format_rm(st.session_state.savings_goal)}")
+            st.progress(
+                pct,
+                text=f"{format_money(st.session_state.balance)} / {format_money(st.session_state.savings_goal)}",
+            )
             if st.session_state.balance >= st.session_state.savings_goal:
                 st.success("🎉 Savings goal reached!")
         else:
@@ -150,17 +190,23 @@ def main():
         with col1:
             kind = st.selectbox("Type", ["Income", "Expense"])
         with col2:
-            amount = st.number_input("Amount (RM)", min_value=0.0, step=0.50, format="%.2f")
+            amount_display = st.number_input(
+                f"Amount ({st.session_state.currency})",
+                min_value=0.0,
+                step=0.50,
+                format="%.2f",
+            )
         category = st.selectbox("Category", CATEGORIES)
         note = st.text_input("Note (optional)", placeholder="e.g. Nasi lemak at mamak")
         submitted = st.form_submit_button("Add")
 
         if submitted:
-            if amount <= 0:
+            if amount_display <= 0:
                 st.error("Please enter an amount greater than 0.")
             else:
-                add_transaction(kind, amount, category, note)
-                st.success(f"Added {kind.lower()}: {format_rm(amount)}")
+                amount_rm = from_display(amount_display)
+                add_transaction(kind, amount_rm, category, note)
+                st.success(f"Added {kind.lower()}: {format_money(amount_rm)}")
                 st.rerun()
 
     # Transaction history
@@ -197,7 +243,7 @@ def main():
                         <div style="font-size: 12px; color: #666;">{t['date']}</div>
                     </div>
                     <div style="font-weight: bold; color: {color};">
-                        {sign}{format_rm(abs(t['amount']))}
+                        {sign}{format_money(abs(t['amount']))}
                     </div>
                 </div>
                 """,
@@ -207,7 +253,7 @@ def main():
         # Delete a transaction
         with st.expander("Delete a transaction"):
             options = {
-                f"{t['date']} · {t['category']} · {format_rm(abs(t['amount']))}": i
+                f"{t['date']} · {t['category']} · {format_money(abs(t['amount']))}": i
                 for i, t in enumerate(st.session_state.transactions)
             }
             choice = st.selectbox("Select transaction", list(options.keys()))
