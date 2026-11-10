@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import random
 from datetime import date, datetime
 
 SAVE_FILE = "kl_tracker_data.json"
@@ -47,6 +48,7 @@ def save_data():
         "transactions": st.session_state.get("transactions", []),
         "savings_goal": st.session_state.get("savings_goal", 0.0),
         "currency": st.session_state.get("currency", "RM"),
+        "goal_celebrated": st.session_state.get("goal_celebrated", False),
     }
     try:
         with open(SAVE_FILE, "w") as f:
@@ -110,6 +112,8 @@ def main():
         st.session_state.savings_goal = saved.get("savings_goal", 0.0)
     if "currency" not in st.session_state:
         st.session_state.currency = saved.get("currency", "RM")
+    if "goal_celebrated" not in st.session_state:
+        st.session_state.goal_celebrated = saved.get("goal_celebrated", False)
 
     st.title("💰 Kuala Lumpur Pocket Money & Allowance Tracker")
     st.caption("Track your daily allowance and spending. Switch between RM and USD in the sidebar.")
@@ -180,6 +184,14 @@ def main():
             )
             if st.session_state.balance >= st.session_state.savings_goal:
                 st.success("🎉 Savings goal reached!")
+                if not st.session_state.goal_celebrated:
+                    st.session_state.goal_celebrated = True
+                    save_data()
+            else:
+                # Reset the celebration flag if the balance drops below the goal
+                if st.session_state.goal_celebrated:
+                    st.session_state.goal_celebrated = False
+                    save_data()
         else:
             st.caption("Set a target above to track your progress.")
         st.divider()
@@ -187,8 +199,79 @@ def main():
             st.session_state.balance = 0.0
             st.session_state.transactions = []
             st.session_state.savings_goal = 0.0
+            st.session_state.goal_celebrated = False
             save_data()
             st.rerun()
+
+    # Celebration animation when the savings goal is reached
+    if (
+        st.session_state.savings_goal > 0
+        and st.session_state.balance >= st.session_state.savings_goal
+        and st.session_state.goal_celebrated
+    ):
+        confetti = "".join(
+            f"<span class='confetti' style='left:{random.randint(0, 100)}%;"
+            f"animation-delay:{random.uniform(0, 1.5):.2f}s;"
+            f"animation-duration:{random.uniform(2.0, 3.5):.2f}s;"
+            f"background:{random.choice(['#ff5252', '#ffd740', '#69f0ae', '#40c4ff', '#e040fb', '#ffab40'])};'>"
+            f"</span>"
+            for _ in range(40)
+        )
+        st.markdown(
+            f"""
+            <style>
+            @keyframes goal-pop {{
+                0%   {{ transform: scale(0.5); opacity: 0; }}
+                60%  {{ transform: scale(1.15); opacity: 1; }}
+                100% {{ transform: scale(1); opacity: 1; }}
+            }}
+            @keyframes goal-glow {{
+                0%   {{ box-shadow: 0 0 10px #ffd740, 0 0 20px #ffab40; }}
+                50%  {{ box-shadow: 0 0 25px #ffd740, 0 0 50px #ffab40; }}
+                100% {{ box-shadow: 0 0 10px #ffd740, 0 0 20px #ffab40; }}
+            }}
+            @keyframes confetti-fall {{
+                0%   {{ transform: translateY(-20px) rotate(0deg); opacity: 1; }}
+                100% {{ transform: translateY(320px) rotate(720deg); opacity: 0; }}
+            }}
+            .goal-banner {{
+                position: relative;
+                overflow: hidden;
+                text-align: center;
+                padding: 24px;
+                margin-bottom: 16px;
+                border-radius: 16px;
+                background: linear-gradient(135deg, #ffd740, #ffab40, #ff5252);
+                color: white;
+                font-size: 28px;
+                font-weight: bold;
+                animation: goal-pop 0.8s ease-out, goal-glow 2s ease-in-out infinite;
+            }}
+            .goal-banner .sub {{
+                font-size: 16px;
+                font-weight: normal;
+                margin-top: 6px;
+                opacity: 0.95;
+            }}
+            .confetti {{
+                position: absolute;
+                top: 0;
+                width: 10px;
+                height: 14px;
+                border-radius: 2px;
+                animation-name: confetti-fall;
+                animation-timing-function: ease-in;
+                animation-iteration-count: infinite;
+            }}
+            </style>
+            <div class="goal-banner">
+                {confetti}
+                🎉 Savings Goal Reached! 🎉
+                <div class="sub">You hit {format_money(st.session_state.savings_goal)} — amazing work!</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     # Add transaction form
     st.subheader("➕ Add Transaction")
